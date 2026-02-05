@@ -20,7 +20,7 @@ class SettingsController extends Controller
         $settings = Settings::first();
 
         // Get latest VAT record
-        $latestVat = Vat::orderBy('from_date', 'desc')->first();
+        $latestVat = Vat::orderBy('id', 'desc')->first();
 
         // Get all fuel types with prices
         $fuelTypes = FuelType::select('id', 'name', 'price')
@@ -66,6 +66,13 @@ class SettingsController extends Controller
             'from_date' => 'required|date',
             'to_date' => 'required|date|after_or_equal:from_date',
         ]);
+
+        // Update the latest VAT record's to_date to now()
+        $latestVat = Vat::orderBy('id', 'desc')->first();
+        if ($latestVat) {
+            $latestVat->to_date = now();
+            $latestVat->save();
+        }
 
         $vat = Vat::create([
             'vat_percentage' => $request->vat_percentage,
