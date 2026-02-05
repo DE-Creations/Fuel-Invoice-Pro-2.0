@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class TaxInvoice extends Model
 {
@@ -28,12 +29,13 @@ class TaxInvoice extends Model
         'invoice_date' => 'datetime',
         'from_date' => 'date',
         'to_date' => 'date',
+        'payment_method_id' => 'integer',
     ];
 
     /**
      * Get the invoice daily records associated with this tax invoice
      */
-    public function invoiceDailies()
+    public function invoiceDailies(): BelongsToMany
     {
         return $this->belongsToMany(
             InvoiceDaily::class,

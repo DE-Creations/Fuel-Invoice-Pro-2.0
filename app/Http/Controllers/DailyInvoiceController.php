@@ -8,6 +8,7 @@ use App\Models\FuelType;
 use App\Models\Vat;
 use App\Models\InvoiceDaily;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 
 class DailyInvoiceController extends Controller
@@ -17,10 +18,7 @@ class DailyInvoiceController extends Controller
      */
     public function index()
     {
-        $companies = Company::whereNull('deleted_at')
-            ->select('id as value', 'name as label')
-            ->get();
-
+        $companies = Company::getActiveCompanies();
         $vatPercentage = Vat::getCurrentVatPercentage();
 
         return Inertia::render('Index', [
@@ -34,10 +32,12 @@ class DailyInvoiceController extends Controller
      */
     public function getVehiclesByCompany($company_id)
     {
-        $vehicles = Vehicle::where('company_id', $company_id)
-            ->whereNull('deleted_at')
-            ->select('id as value', 'vehicle_no as label', 'fuel_category_id')
-            ->get();
+        $vehicles = Cache::remember("vehicles_company_{$company_id}", now()->addHours(6), function () use ($company_id) {
+            return Vehicle::where('company_id', $company_id)
+                ->whereNull('deleted_at')
+                ->select('id as value', 'vehicle_no as label', 'fuel_category_id')
+                ->get();
+        });
 
         return response()->json([
             'vehicles' => $vehicles
@@ -49,19 +49,21 @@ class DailyInvoiceController extends Controller
      */
     public function getFuelTypesByVehicle($vehicle_id)
     {
-        $vehicle = Vehicle::where('id', $vehicle_id)->first();
+        $vehicle = Vehicle::select('id', 'fuel_category_id')->find($vehicle_id);
 
         if (!$vehicle) {
             return response()->json(['error' => 'Vehicle not found'], 404);
         }
 
-        $fuelTypes = FuelType::where('fuel_category_id', $vehicle->fuel_category_id)
-            ->select('id as value', 'name as label', 'price')
-            ->get()
-            ->map(function ($fuelType) {
-                $fuelType->price = round($fuelType->price);
-                return $fuelType;
-            });
+        $fuelTypes = Cache::remember("fuel_types_category_{$vehicle->fuel_category_id}", now()->addHours(6), function () use ($vehicle) {
+            return FuelType::where('fuel_category_id', $vehicle->fuel_category_id)
+                ->select('id as value', 'name as label', 'price')
+                ->get()
+                ->map(function ($fuelType) {
+                    $fuelType->price = round($fuelType->price);
+                    return $fuelType;
+                });
+        });
 
         return response()->json([
             'fuelTypes' => $fuelTypes,

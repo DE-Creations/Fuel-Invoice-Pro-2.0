@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 use Carbon\Carbon;
 
 class Vat extends Model
@@ -27,17 +28,28 @@ class Vat extends Model
     ];
 
     /**
-     * Get the current active VAT percentage
+     * Get the current active VAT percentage with caching
      */
-    public static function getCurrentVatPercentage()
+    public static function getCurrentVatPercentage(): float
     {
-        $today = Carbon::today();
+        return Cache::remember('current_vat_percentage', now()->addDay(), function () {
+            $today = Carbon::today();
 
-        $vat = self::where('from_date', '<=', $today)
-            ->where('to_date', '>=', $today)
-            ->orderBy('from_date', 'desc')
-            ->first();
+            $vat = self::where('from_date', '<=', $today)
+                ->where('to_date', '>=', $today)
+                ->orderBy('from_date', 'desc')
+                ->first();
 
-        return $vat ? $vat->vat_percentage : 0;
+            return $vat ? $vat->vat_percentage : 0.0;
+        });
+    }
+
+    /**
+     * Clear VAT cache when model is saved
+     */
+    protected static function booted(): void
+    {
+        static::saved(fn() => Cache::forget('current_vat_percentage'));
+        static::deleted(fn() => Cache::forget('current_vat_percentage'));
     }
 }

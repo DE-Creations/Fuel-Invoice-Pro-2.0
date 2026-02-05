@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Cache;
 
 class Vehicle extends Model
 {
@@ -25,6 +27,8 @@ class Vehicle extends Model
     protected $casts = [
         'created_at' => 'datetime',
         'deleted_at' => 'datetime',
+        'company_id' => 'integer',
+        'fuel_category_id' => 'integer',
     ];
 
     /**
@@ -38,7 +42,7 @@ class Vehicle extends Model
     /**
      * Get the company that owns the vehicle
      */
-    public function company()
+    public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class, 'company_id', 'id');
     }
@@ -46,8 +50,21 @@ class Vehicle extends Model
     /**
      * Get the fuel category for the vehicle
      */
-    public function fuelCategory()
+    public function fuelCategory(): BelongsTo
     {
         return $this->belongsTo(FuelCategory::class, 'fuel_category_id', 'id');
+    }
+
+    /**
+     * Clear vehicle cache when model is modified
+     */
+    protected static function booted(): void
+    {
+        static::saved(function ($vehicle) {
+            Cache::forget("vehicles_company_{$vehicle->company_id}");
+        });
+        static::deleted(function ($vehicle) {
+            Cache::forget("vehicles_company_{$vehicle->company_id}");
+        });
     }
 }

@@ -21,9 +21,7 @@ class TaxInvoiceController extends Controller
      */
     public function index()
     {
-        $companies = Company::whereNull('deleted_at')
-            ->select('id as value', 'name as label')
-            ->get();
+        $companies = Company::getActiveCompanies();
 
         return Inertia::render('TaxInvoice', [
             'companies' => $companies,
