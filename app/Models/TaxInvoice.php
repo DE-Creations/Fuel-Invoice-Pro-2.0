@@ -1,0 +1,45 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class TaxInvoice extends Model
+{
+    use HasFactory;
+
+    public $timestamps = false;
+
+    protected $table = 'tax_invoice';
+
+    protected $fillable = [
+        'tax_invoice_no',
+        'invoice_date',
+        'company_name',
+        'vehicle_no',
+        'payment_method_id',
+        'from_date',
+        'to_date',
+        'created_at',
+    ];
+
+    protected $casts = [
+        'invoice_date' => 'datetime',
+        'from_date' => 'date',
+        'to_date' => 'date',
+    ];
+
+    /**
+     * Get the invoice daily records associated with this tax invoice
+     */
+    public function invoiceDailies()
+    {
+        return $this->belongsToMany(
+            InvoiceDaily::class,
+            'tax_invoice_invoice_nos',
+            'tax_invoice_id',
+            'invoice_daily_id'
+        );
+    }
+}
