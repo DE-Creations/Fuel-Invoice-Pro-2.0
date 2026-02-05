@@ -21,4 +21,43 @@ export default defineConfig({
       '@': path.resolve(__dirname, 'resources/js'),
     },
   },
+  build: {
+    // Enable code splitting
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Split vendor code into separate chunk
+          vendor: ['react', 'react-dom', '@inertiajs/react'],
+          // Split UI components into separate chunk
+          ui: [
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-dropdown-menu',
+            '@radix-ui/react-select',
+            '@radix-ui/react-toast',
+            '@radix-ui/react-label',
+            '@radix-ui/react-checkbox',
+            '@radix-ui/react-tabs',
+            '@radix-ui/react-popover',
+            '@radix-ui/react-scroll-area',
+          ],
+          // Split form libraries
+          forms: ['react-hook-form', '@hookform/resolvers', 'zod'],
+        },
+      },
+    },
+    // Increase chunk size warning limit
+    chunkSizeWarningLimit: 1000,
+    // Enable minification
+    minify: 'terser',
+  },
+  // Optimize deps
+  optimizeDeps: {
+    include: [
+      'react',
+      'react-dom',
+      '@inertiajs/react',
+      'react-hook-form',
+      'zod',
+    ],
+  },
 });

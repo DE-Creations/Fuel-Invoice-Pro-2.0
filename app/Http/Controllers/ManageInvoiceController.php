@@ -8,6 +8,7 @@ use App\Models\FuelType;
 use App\Models\Vat;
 use App\Models\InvoiceDaily;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 
 class ManageInvoiceController extends Controller
@@ -68,23 +69,25 @@ class ManageInvoiceController extends Controller
                 ->where('id', $id)
                 ->firstOrFail();
 
-            // Get all companies
-            $companies = Company::whereNull('deleted_at')
-                ->select('id as value', 'name as label')
-                ->get();
+            // Get all companies using cached method
+            $companies = Company::getActiveCompanies();
 
-            // Get vehicles for the invoice's company
-            $vehicles = Vehicle::where('company_id', $invoice->vehicle->company_id)
-                ->whereNull('deleted_at')
-                ->select('id as value', 'vehicle_no as label', 'fuel_category_id')
-                ->get();
+            // Get vehicles for the invoice's company with caching
+            $vehicles = Cache::remember("vehicles_company_{$invoice->vehicle->company_id}", now()->addHours(6), function () use ($invoice) {
+                return Vehicle::where('company_id', $invoice->vehicle->company_id)
+                    ->whereNull('deleted_at')
+                    ->select('id as value', 'vehicle_no as label', 'fuel_category_id')
+                    ->get();
+            });
 
-            // Get fuel types for the vehicle's fuel category
-            $fuelTypes = FuelType::where('fuel_category_id', $invoice->vehicle->fuel_category_id)
-                ->select('id as value', 'name as label', 'price')
-                ->get();
+            // Get fuel types for the vehicle's fuel category with caching
+            $fuelTypes = Cache::remember("fuel_types_category_{$invoice->vehicle->fuel_category_id}", now()->addHours(6), function () use ($invoice) {
+                return FuelType::where('fuel_category_id', $invoice->vehicle->fuel_category_id)
+                    ->select('id as value', 'name as label', 'price')
+                    ->get();
+            });
 
-            // Get current VAT
+            // Get current VAT (already cached in the model)
             $vatPercentage = Vat::getCurrentVatPercentage();
 
             return response()->json([

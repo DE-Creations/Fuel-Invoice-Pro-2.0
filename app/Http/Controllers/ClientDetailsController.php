@@ -15,7 +15,7 @@ class ClientDetailsController extends Controller
      */
     public function index()
     {
-        // Fetch all active companies
+        // Fetch all active companies using cached method
         $companies = Company::whereNull('deleted_at')
             ->select(
                 'id',

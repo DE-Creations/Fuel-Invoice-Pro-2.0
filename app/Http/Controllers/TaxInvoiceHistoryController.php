@@ -16,9 +16,7 @@ class TaxInvoiceHistoryController extends Controller
      */
     public function index()
     {
-        $companies = Company::whereNull('deleted_at')
-            ->select('id as value', 'name as label')
-            ->get();
+        $companies = Company::getActiveCompanies();
 
         return Inertia::render('InvoiceHistory', [
             'companies' => $companies,

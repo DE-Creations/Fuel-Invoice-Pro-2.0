@@ -25,6 +25,9 @@ class User extends Authenticatable
         'password',
         'user_type',
         'expired_at',
+        'remember_token_expires_at',
+        'created_at',
+        'updated_at',
     ];
 
     /**
@@ -46,6 +49,7 @@ class User extends Authenticatable
     {
         return [
             'expired_at' => 'datetime',
+            'remember_token_expires_at' => 'datetime',
             'password' => 'hashed',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',

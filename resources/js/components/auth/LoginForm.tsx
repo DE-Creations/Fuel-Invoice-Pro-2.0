@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Mail, Loader2 } from "lucide-react";
+import { User, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -8,20 +8,20 @@ import { useToast } from "@/hooks/use-toast";
 import { useForm } from "@inertiajs/react";
 
 interface FormData {
-  email: string;
+  name: string;
   password: string;
   remember: boolean;
 }
 
 export function LoginForm() {
   const { data, setData, post, processing, errors } = useForm<FormData>({
-    email: "",
+    name: "",
     password: "",
     remember: false,
   });
 
   const { toast } = useToast();
-  const [hasEmailValue, setHasEmailValue] = React.useState(false);
+  const [hasNameValue, setHasNameValue] = React.useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,18 +34,20 @@ export function LoginForm() {
         });
       },
       onError: () => {
+        // Check for specific error messages
+        const errorMessage = errors.name || errors.password || "Login failed. Please try again.";
         toast({
           title: "Login Failed",
-          description: "Invalid email or password. Please try again.",
+          description: errorMessage,
           variant: "destructive",
         });
       },
     });
   };
 
-  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setData("email", e.target.value);
-    setHasEmailValue(e.target.value !== "");
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setData("name", e.target.value);
+    setHasNameValue(e.target.value !== "");
   };
 
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -54,29 +56,29 @@ export function LoginForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Email Input */}
+      {/* Username Input */}
       <div className="space-y-1">
         <div className="floating-input-wrapper group">
           <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors">
-            <Mail className="h-4 w-4" />
+            <User className="h-4 w-4" />
           </div>
           <input
-            type="email"
-            value={data.email}
-            onChange={handleEmailChange}
+            type="text"
+            value={data.name}
+            onChange={handleNameChange}
             className={cn(
               "floating-input peer pl-11",
-              hasEmailValue && "has-value",
-              errors.email && "border-destructive focus:border-destructive focus:ring-destructive/20"
+              hasNameValue && "has-value",
+              errors.name && "border-destructive focus:border-destructive focus:ring-destructive/20"
             )}
             placeholder=" "
             disabled={processing}
-            autoComplete="email"
+            autoComplete="username"
           />
-          <label className="floating-label left-11">Email Address</label>
+          <label className="floating-label left-11">Username</label>
         </div>
-        {errors.email && (
-          <p className="text-xs text-destructive pl-1">{errors.email}</p>
+        {errors.name && (
+          <p className="text-xs text-destructive pl-1">{errors.name}</p>
         )}
       </div>
 
