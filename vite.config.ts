@@ -47,8 +47,11 @@ export default defineConfig({
     },
     // Increase chunk size warning limit
     chunkSizeWarningLimit: 1000,
-    // Enable minification
-    minify: 'terser',
+    // Enable minification (using esbuild which is faster and doesn't require extra dependencies)
+    minify: 'esbuild',
+    esbuild: {
+      drop: ['console', 'debugger'],
+    },
   },
   // Optimize deps
   optimizeDeps: {

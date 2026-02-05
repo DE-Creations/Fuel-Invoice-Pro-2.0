@@ -182,8 +182,8 @@ export default function Settings({ companyDetails, currentVat, fuelTypes }: Sett
         {/* VAT Settings Card */}
         <div className="card-neumorphic-elevated p-6 animate-fade-slide-up" style={{ animationDelay: "0.2s" }}>
           <div className="flex items-center gap-3 mb-6">
-            <div className="p-3 rounded-xl bg-accent/10">
-              <Receipt className="h-5 w-5 text-accent" />
+            <div className="p-3 rounded-xl bg-warning/10">
+              <Receipt className="h-5 w-5 text-warning" />
             </div>
             <h2 className="text-lg font-semibold text-foreground">VAT Settings</h2>
           </div>
