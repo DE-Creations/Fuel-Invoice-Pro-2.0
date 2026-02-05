@@ -37,6 +37,15 @@ export default function Create() {
 
   const { toast } = useToast();
 
+  // Format date in local timezone (YYYY-MM-DD)
+  const getTodayLocal = (): string => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
 
@@ -161,7 +170,7 @@ export default function Create() {
                   onChange={(e) => setData("expired_at", e.target.value)}
                   className={errors.expired_at ? "border-destructive" : ""}
                   disabled={processing}
-                  min={new Date().toISOString().split("T")[0]}
+                  min={getTodayLocal()}
                 />
                 <p className="text-xs text-muted-foreground">
                   Leave empty for no expiration. Users cannot login after this date.

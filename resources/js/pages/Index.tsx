@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { usePage } from "@inertiajs/react";
 import { Loader2 } from "lucide-react";
 import { FloatingInput } from "@/components/ui/FloatingInput";
 import { SearchableSelect } from "@/components/ui/SearchableSelect";
@@ -29,6 +30,7 @@ interface IndexProps {
 
 export default function Index({ companies, initialVatPercentage }: IndexProps) {
   const { toast } = useToast();
+  const { props } = usePage<{ csrf_token: string }>();
   const [isLoading, setIsLoading] = useState(false);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [fuelTypes, setFuelTypes] = useState<FuelTypeOption[]>([]);
@@ -141,9 +143,17 @@ export default function Index({ companies, initialVatPercentage }: IndexProps) {
     setIsLoading(true);
 
     try {
+      // Format date in local timezone (YYYY-MM-DD)
+      const formatDateLocal = (date: Date): string => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+
       const invoiceData = {
         serial_no: formData.serialNo,
-        date_added: formData.date.toISOString().split('T')[0],
+        date_added: formatDateLocal(formData.date),
         vehicle_id: formData.vehicle,
         fuel_type_id: formData.fuelType,
         volume: volume,
@@ -158,43 +168,42 @@ export default function Index({ companies, initialVatPercentage }: IndexProps) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+          'X-CSRF-TOKEN': props.csrf_token,
+          'Accept': 'application/json',
         },
         body: JSON.stringify(invoiceData),
+        credentials: 'same-origin',
       });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to save invoice' }));
+        throw new Error(errorData.message || `Server error: ${response.status}`);
+      }
 
       const data = await response.json();
 
-      if (response.ok) {
-        toast({
-          title: "Invoice Saved Successfully",
-          description: `Invoice ${formData.serialNo} has been saved.`,
-        });
+      toast({
+        title: "Invoice Saved Successfully",
+        description: `Invoice ${formData.serialNo} has been saved.`,
+      });
 
-        // Reset form
-        setFormData({
-          serialNo: "",
-          date: new Date(),
-          company: "",
-          vehicle: "",
-          fuelType: "",
-          volume: "",
-        });
-        setVehicles([]);
-        setFuelTypes([]);
-        setFuelPrice(0);
-      } else {
-        toast({
-          title: "Error",
-          description: data.message || "Failed to save invoice",
-          variant: "destructive",
-        });
-      }
+      // Reset form
+      setFormData({
+        serialNo: "",
+        date: new Date(),
+        company: "",
+        vehicle: "",
+        fuelType: "",
+        volume: "",
+      });
+      setVehicles([]);
+      setFuelTypes([]);
+      setFuelPrice(0);
     } catch (error) {
       console.error('Error saving invoice:', error);
       toast({
         title: "Error",
-        description: "An error occurred while saving the invoice",
+        description: error instanceof Error ? error.message : "An error occurred while saving the invoice",
         variant: "destructive",
       });
     } finally {

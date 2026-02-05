@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { usePage } from "@inertiajs/react";
 import { Archive, Printer, FileX } from "lucide-react";
 import { SearchableSelect } from "@/components/ui/SearchableSelect";
 import { DataGrid } from "@/components/ui/DataGrid";
@@ -66,6 +67,7 @@ interface InvoiceOption {
 
 export default function InvoiceHistory({ companies }: InvoiceHistoryProps) {
   const { toast } = useToast();
+  const { props } = usePage<{ csrf_token: string }>();
   const [filters, setFilters] = useState({
     company: "",
     year: "2026",
@@ -106,7 +108,7 @@ export default function InvoiceHistory({ companies }: InvoiceHistoryProps) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+          'X-CSRF-TOKEN': props.csrf_token,
         },
         body: JSON.stringify({
           company_name: selectedCompany.label,
@@ -174,7 +176,7 @@ export default function InvoiceHistory({ companies }: InvoiceHistoryProps) {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+            'X-CSRF-TOKEN': props.csrf_token,
           },
           body: JSON.stringify({
             tax_invoice_id: invoiceValue,
@@ -217,7 +219,7 @@ export default function InvoiceHistory({ companies }: InvoiceHistoryProps) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+          'X-CSRF-TOKEN': props.csrf_token,
         },
         body: JSON.stringify({
           tax_invoice_id: selectedInvoice,
