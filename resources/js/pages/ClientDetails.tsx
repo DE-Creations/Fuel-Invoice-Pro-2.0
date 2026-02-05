@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { usePage } from "@inertiajs/react";
 import { Users, Loader2, Plus, RotateCcw, Car, Building2, FileX, Trash2 } from "lucide-react";
 import { FloatingInput } from "@/components/ui/FloatingInput";
 import { SearchableSelect } from "@/components/ui/SearchableSelect";
@@ -74,6 +75,7 @@ const emptyVehicleForm = {
 
 export default function ClientDetails({ companies: initialCompanies, fuelCategories }: ClientDetailsProps) {
   const { toast } = useToast();
+  const { props } = usePage<{ csrf_token: string }>();
   const [isLoading, setIsLoading] = useState(false);
   const [companies, setCompanies] = useState(initialCompanies);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -124,7 +126,7 @@ export default function ClientDetails({ companies: initialCompanies, fuelCategor
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+          'X-CSRF-TOKEN': props.csrf_token,
         },
         body: JSON.stringify({
           name: companyForm.companyName,
@@ -199,7 +201,7 @@ export default function ClientDetails({ companies: initialCompanies, fuelCategor
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+          'X-CSRF-TOKEN': props.csrf_token,
         },
         body: JSON.stringify({
           company_id: selectedCompanyId,
@@ -262,7 +264,7 @@ export default function ClientDetails({ companies: initialCompanies, fuelCategor
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+              'X-CSRF-TOKEN': props.csrf_token,
             },
             body: JSON.stringify({ company_id: selectedCompanyId }),
           });
@@ -300,13 +302,12 @@ export default function ClientDetails({ companies: initialCompanies, fuelCategor
 
     try {
       setIsLoading(true);
-      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
       const response = await fetch(`/api/clients/delete-company/${deleteCompanyId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': csrfToken || '',
+          'X-CSRF-TOKEN': props.csrf_token,
         },
       });
 
@@ -350,13 +351,12 @@ export default function ClientDetails({ companies: initialCompanies, fuelCategor
 
     try {
       setIsLoading(true);
-      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
       const response = await fetch(`/api/clients/delete-vehicle/${deleteVehicleId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': csrfToken || '',
+          'X-CSRF-TOKEN': props.csrf_token,
         },
       });
 

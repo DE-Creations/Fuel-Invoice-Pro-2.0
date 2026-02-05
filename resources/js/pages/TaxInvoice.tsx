@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { usePage } from "@inertiajs/react";
 import { Search, Printer, FileX, CalendarIcon } from "lucide-react";
 import { SearchableSelect } from "@/components/ui/SearchableSelect";
 import { DatePickerField } from "@/components/ui/DatePickerField";
@@ -26,6 +27,7 @@ interface TaxRecord {
 
 export default function TaxInvoice() {
   const { toast } = useToast();
+  const { props } = usePage<{ csrf_token: string }>();
   const [companies, setCompanies] = useState<SelectOption[]>([]);
   const [vehicles, setVehicles] = useState<SelectOption[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<SelectOption[]>([]);
@@ -170,12 +172,11 @@ export default function TaxInvoice() {
       return;
     }
     try {
-      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
       const response = await fetch(`/api/invoice/tax-records?page=${page}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': csrfToken || '',
+          'X-CSRF-TOKEN': props.csrf_token,
         },
         body: JSON.stringify({
           company_id: filters.company,
@@ -281,12 +282,11 @@ export default function TaxInvoice() {
 
     // First, check for duplicate invoice number via API
     try {
-      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
       const response = await fetch('/api/invoice/generate-tax-invoice-pdf', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': csrfToken || '',
+          'X-CSRF-TOKEN': props.csrf_token,
         },
         body: JSON.stringify({
           company_id: filters.company,

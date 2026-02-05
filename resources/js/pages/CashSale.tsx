@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { usePage } from "@inertiajs/react";
 import { Banknote, Loader2, Printer, TrendingUp, Calculator, Receipt } from "lucide-react";
 import { SearchableSelect } from "@/components/ui/SearchableSelect";
 import { FloatingInput } from "@/components/ui/FloatingInput";
@@ -45,6 +46,7 @@ interface CashSaleProps {
 
 export default function CashSale({ recentEntries, vatPercentage }: CashSaleProps) {
   const { toast } = useToast();
+  const { props } = usePage<{ csrf_token: string }>();
   const [activeTab, setActiveTab] = useState<"entry" | "history">("entry");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -84,7 +86,7 @@ export default function CashSale({ recentEntries, vatPercentage }: CashSaleProps
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+          'X-CSRF-TOKEN': props.csrf_token,
         },
         body: JSON.stringify({
           year: parseInt(entryData.year),
@@ -128,7 +130,7 @@ export default function CashSale({ recentEntries, vatPercentage }: CashSaleProps
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+          'X-CSRF-TOKEN': props.csrf_token,
         },
         body: JSON.stringify({
           year: parseInt(historyData.year),
@@ -186,7 +188,7 @@ export default function CashSale({ recentEntries, vatPercentage }: CashSaleProps
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+          'X-CSRF-TOKEN': props.csrf_token,
         },
         body: JSON.stringify({
           year: parseInt(historyData.year),

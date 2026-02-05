@@ -17,6 +17,7 @@ return new class extends Migration {
             $table->string('user_type', 20);
             $table->dateTime('expired_at')->nullable();
             $table->rememberToken();
+            $table->timestamp('remember_token_expires_at')->nullable();
             $table->timestamp('created_at')->nullable();
             $table->timestamp('updated_at')->nullable();
             $table->timestamp('deleted_at')->nullable();

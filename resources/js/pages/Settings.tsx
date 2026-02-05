@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { usePage } from "@inertiajs/react";
 import { Building2, Receipt, Fuel, MapPin, Phone, FileText, Loader2, Check } from "lucide-react";
 import { FloatingInput } from "@/components/ui/FloatingInput";
 import { SearchableSelect } from "@/components/ui/SearchableSelect";
@@ -34,6 +35,7 @@ interface SettingsProps {
 
 export default function Settings({ companyDetails, currentVat, fuelTypes }: SettingsProps) {
   const { toast } = useToast();
+  const { props } = usePage<{ csrf_token: string }>();
   const [vatPercent, setVatPercent] = useState(currentVat.percentage.toString());
   const [isUpdatingVat, setIsUpdatingVat] = useState(false);
   const [vatSuccess, setVatSuccess] = useState(false);
@@ -57,15 +59,23 @@ export default function Settings({ companyDetails, currentVat, fuelTypes }: Sett
     setIsUpdatingVat(true);
 
     try {
+      // Format date in local timezone (YYYY-MM-DD)
+      const formatDateLocal = (date: Date): string => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+
       const response = await fetch('/api/settings/update-vat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+          'X-CSRF-TOKEN': props.csrf_token,
         },
         body: JSON.stringify({
           vat_percentage: parseFloat(vatPercent),
-          from_date: new Date().toISOString().split('T')[0],
+          from_date: formatDateLocal(new Date()),
           to_date: '2099-12-31',
         }),
       });
@@ -101,7 +111,7 @@ export default function Settings({ companyDetails, currentVat, fuelTypes }: Sett
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+          'X-CSRF-TOKEN': props.csrf_token,
         },
         body: JSON.stringify({
           fuel_type_id: currentFuelData.id,

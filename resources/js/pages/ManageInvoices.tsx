@@ -6,7 +6,7 @@ import { SearchableSelect } from "@/components/ui/SearchableSelect";
 import { DatePickerField } from "@/components/ui/DatePickerField";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Link } from "@inertiajs/react";
+import { Link, usePage } from "@inertiajs/react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,6 +39,7 @@ interface PaginationData {
 
 export default function ManageInvoices() {
   const { toast } = useToast();
+  const { props } = usePage<{ csrf_token: string }>();
   const [search, setSearch] = useState("");
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -109,12 +110,11 @@ export default function ManageInvoices() {
   const handleDelete = async () => {
     if (deleteId) {
       try {
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
         const response = await fetch(`/api/invoice/delete/${deleteId}`, {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': csrfToken || '',
+            'X-CSRF-TOKEN': props.csrf_token,
           },
         });
 
@@ -147,12 +147,11 @@ export default function ManageInvoices() {
 
   const handleRecover = async (id: number) => {
     try {
-      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
       const response = await fetch(`/api/invoice/recover/${id}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': csrfToken || '',
+          'X-CSRF-TOKEN': props.csrf_token,
         },
       });
 
@@ -185,11 +184,10 @@ export default function ManageInvoices() {
     setIsEditLoading(true);
     setIsInitialLoad(true);
     try {
-      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
       const response = await fetch(`/api/invoice/details/${id}`, {
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': csrfToken || '',
+          'X-CSRF-TOKEN': props.csrf_token,
         },
       });
 
@@ -254,6 +252,14 @@ export default function ManageInvoices() {
 
     setIsEditLoading(true);
     try {
+      // Format date in local timezone (YYYY-MM-DD)
+      const formatDateLocal = (date: Date): string => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+
       const volume = parseFloat(editFormData.volume) || 0;
       const fuelPriceFromDB = fuelPrice;
       const FuelNetPrice = Math.round((fuelPrice / (100 + vatPercentage))* 100);
@@ -262,16 +268,15 @@ export default function ManageInvoices() {
       const vatAmount = Math.round(vatAmountPerLiter * volume);
       const total = Math.round(fuelPrice * volume);
 
-      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
       const response = await fetch(`/api/invoice/update/${editInvoiceId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': csrfToken || '',
+          'X-CSRF-TOKEN': props.csrf_token,
         },
         body: JSON.stringify({
           serial_no: editFormData.serialNo,
-          date_added: editFormData.date.toISOString().split('T')[0],
+          date_added: formatDateLocal(editFormData.date),
           vehicle_id: editFormData.vehicle,
           fuel_type_id: editFormData.fuelType,
           volume: volume,

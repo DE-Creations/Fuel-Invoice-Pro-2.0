@@ -4,7 +4,7 @@ import laravel from 'laravel-vite-plugin';
 import { defineConfig } from 'vite';
 import path from 'node:path';
 
-export default defineConfig({
+export default defineConfig(({ isSsrBuild }) => ({
   plugins: [
     laravel({
       input: ['resources/css/app.css', 'resources/js/app.tsx'],
@@ -24,7 +24,7 @@ export default defineConfig({
   build: {
     // Enable code splitting
     rollupOptions: {
-      output: {
+      output: !isSsrBuild ? {
         manualChunks: {
           // Split vendor code into separate chunk
           vendor: ['react', 'react-dom', '@inertiajs/react'],
@@ -43,7 +43,7 @@ export default defineConfig({
           // Split form libraries
           forms: ['react-hook-form', '@hookform/resolvers', 'zod'],
         },
-      },
+      } : undefined,
     },
     // Increase chunk size warning limit
     chunkSizeWarningLimit: 1000,
@@ -63,4 +63,4 @@ export default defineConfig({
       'zod',
     ],
   },
-});
+}));
