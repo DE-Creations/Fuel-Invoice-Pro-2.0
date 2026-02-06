@@ -47,9 +47,16 @@ export function Sidebar() {
     router.post("/logout");
   };
 
+  // Debug: Log user data
+  console.log('User data:', user);
+  console.log('User expired_at:', user?.expired_at);
+  console.log('Is admin:', isAdmin);
+
   // Calculate days remaining until expiry for regular users
   const expiryInfo = useMemo(() => {
+    console.log('Computing expiryInfo - User:', user, 'isAdmin:', isAdmin, 'expired_at:', user?.expired_at);
     if (!user || isAdmin || !user.expired_at) {
+      console.log('Returning null - conditions:', { hasUser: !!user, isAdmin, hasExpiredAt: !!user?.expired_at });
       return null;
     }
 
