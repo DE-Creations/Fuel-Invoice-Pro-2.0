@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { usePage } from '@inertiajs/react';
 import {
     Building2,
@@ -9,6 +9,9 @@ import {
     FileText,
     Loader2,
     Check,
+    Edit,
+    X,
+    Save,
 } from 'lucide-react';
 import { FloatingInput } from '@/components/ui/FloatingInput';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
@@ -64,6 +67,18 @@ export default function Settings({
 
     const [fuelTypesData, setFuelTypesData] = useState(fuelTypes);
 
+    // Company Profile Edit State
+    const [isEditingCompany, setIsEditingCompany] = useState(false);
+    const [isUpdatingCompany, setIsUpdatingCompany] = useState(false);
+    const [companySuccess, setCompanySuccess] = useState(false);
+    const [companyForm, setCompanyForm] = useState({
+        name: companyDetails.name,
+        address: companyDetails.address,
+        contact: companyDetails.contact,
+        vatNo: companyDetails.vatNo,
+        place_of_supply: companyDetails.place_of_supply || '',
+    });
+
     // Create options for fuel types dropdown
     const fuelTypeOptions = fuelTypesData.map((ft) => ({
         value: ft.id.toString(),
@@ -73,6 +88,58 @@ export default function Settings({
     const currentFuelData = fuelTypesData.find(
         (ft) => ft.id.toString() === selectedFuelId,
     );
+
+    const handleUpdateCompany = async () => {
+        setIsUpdatingCompany(true);
+
+        try {
+            const response = await fetch('/api/settings/update-company', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': props.csrf_token,
+                },
+                body: JSON.stringify({
+                    company_name: companyForm.name,
+                    company_address: companyForm.address,
+                    company_contact: companyForm.contact,
+                    company_vat_no: companyForm.vatNo,
+                    place_of_supply: companyForm.place_of_supply,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                toast({
+                    title: 'Company Details Updated',
+                    description: 'Company profile has been updated successfully',
+                });
+                setCompanySuccess(true);
+                setIsEditingCompany(false);
+                setTimeout(() => setCompanySuccess(false), 2000);
+            }
+        } catch {
+            toast({
+                title: 'Error',
+                description: 'Failed to update company details',
+                variant: 'destructive',
+            });
+        } finally {
+            setIsUpdatingCompany(false);
+        }
+    };
+
+    const handleCancelEdit = () => {
+        setCompanyForm({
+            name: companyDetails.name,
+            address: companyDetails.address,
+            contact: companyDetails.contact,
+            vatNo: companyDetails.vatNo,
+            place_of_supply: companyDetails.place_of_supply || '',
+        });
+        setIsEditingCompany(false);
+    };
 
     const handleUpdateVat = async () => {
         setIsUpdatingVat(true);
@@ -109,7 +176,7 @@ export default function Settings({
                 setVatSuccess(true);
                 setTimeout(() => setVatSuccess(false), 2000);
             }
-        } catch (error) {
+        } catch {
             toast({
                 title: 'Error',
                 description: 'Failed to update VAT percentage',
@@ -156,7 +223,7 @@ export default function Settings({
                 setPriceSuccess(true);
                 setTimeout(() => setPriceSuccess(false), 2000);
             }
-        } catch (error) {
+        } catch {
             toast({
                 title: 'Error',
                 description: 'Failed to update fuel price',
@@ -185,46 +252,154 @@ export default function Settings({
                     className="card-neumorphic p-6 animate-fade-slide-up"
                     style={{ animationDelay: '0.1s' }}
                 >
-                    <div className="flex items-center gap-3 mb-6">
-                        <div className="p-3 rounded-xl bg-primary/10">
-                            <Building2 className="h-5 w-5 text-primary" />
+                    <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-3">
+                            <div className="p-3 rounded-xl bg-primary/10">
+                                <Building2 className="h-5 w-5 text-primary" />
+                            </div>
+                            <h2 className="text-lg font-semibold text-foreground">
+                                Company Profile
+                            </h2>
                         </div>
-                        <h2 className="text-lg font-semibold text-foreground">
-                            Company Profile
-                        </h2>
+                        {!isEditingCompany && (
+                            <button
+                                type="button"
+                                onClick={() => setIsEditingCompany(true)}
+                                className="p-2 rounded-lg hover:bg-secondary/50 transition-colors"
+                                title="Edit Company Profile"
+                            >
+                                <Edit className="h-4 w-4 text-muted-foreground" />
+                            </button>
+                        )}
                     </div>
 
-                    <div className="space-y-4">
-                        <div>
-                            <p className="text-xl font-bold text-foreground">
-                                {companyDetails.name}
-                            </p>
+                    {isEditingCompany ? (
+                        <div className="space-y-4">
+                            <FloatingInput
+                                label="Company Name"
+                                type="text"
+                                value={companyForm.name}
+                                onChange={(e) =>
+                                    setCompanyForm({
+                                        ...companyForm,
+                                        name: e.target.value,
+                                    })
+                                }
+                            />
+                            <FloatingInput
+                                label="Address"
+                                type="text"
+                                value={companyForm.address}
+                                onChange={(e) =>
+                                    setCompanyForm({
+                                        ...companyForm,
+                                        address: e.target.value,
+                                    })
+                                }
+                            />
+                            <FloatingInput
+                                label="Contact Number"
+                                type="text"
+                                value={companyForm.contact}
+                                onChange={(e) =>
+                                    setCompanyForm({
+                                        ...companyForm,
+                                        contact: e.target.value,
+                                    })
+                                }
+                            />
+                            <FloatingInput
+                                label="VAT Number"
+                                type="text"
+                                value={companyForm.vatNo}
+                                onChange={(e) =>
+                                    setCompanyForm({
+                                        ...companyForm,
+                                        vatNo: e.target.value,
+                                    })
+                                }
+                            />
+                            <FloatingInput
+                                label="Place of Supply"
+                                type="text"
+                                value={companyForm.place_of_supply}
+                                onChange={(e) =>
+                                    setCompanyForm({
+                                        ...companyForm,
+                                        place_of_supply: e.target.value,
+                                    })
+                                }
+                            />
+                            <div className="flex gap-2 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={handleUpdateCompany}
+                                    disabled={isUpdatingCompany || !companyForm.name}
+                                    className="btn-success-glow flex-1 flex items-center justify-center gap-2"
+                                >
+                                    {isUpdatingCompany ? (
+                                        <>
+                                            <Loader2 className="h-5 w-5 animate-spin" />
+                                            Saving...
+                                        </>
+                                    ) : companySuccess ? (
+                                        <>
+                                            <Check className="h-5 w-5" />
+                                            Saved!
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Save className="h-5 w-5" />
+                                            Save
+                                        </>
+                                    )}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleCancelEdit}
+                                    disabled={isUpdatingCompany}
+                                    className="btn-secondary flex items-center justify-center gap-2 px-4"
+                                >
+                                    <X className="h-5 w-5" />
+                                    Cancel
+                                </button>
+                            </div>
                         </div>
-                        <div className="flex items-start gap-3 text-sm">
-                            <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-                            <p className="text-muted-foreground">
-                                {companyDetails.address}
-                            </p>
+                    ) : (
+                        <div className="space-y-4">
+                            <div>
+                                <p className="text-xl font-bold text-foreground">
+                                    {companyForm.name}
+                                </p>
+                            </div>
+                            <div className="flex items-start gap-3 text-sm">
+                                <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                                <p className="text-muted-foreground">
+                                    {companyForm.address}
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-3 text-sm">
+                                <Phone className="h-4 w-4 text-muted-foreground" />
+                                <p className="text-muted-foreground">
+                                    {companyForm.contact}
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-3 text-sm">
+                                <FileText className="h-4 w-4 text-muted-foreground" />
+                                <p className="text-muted-foreground">
+                                    {companyForm.vatNo}
+                                </p>
+                            </div>
+                            {companyForm.place_of_supply && (
+                                <div className="flex items-start gap-3 text-sm mt-5">
+                                    <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                                    <p className="text-muted-foreground">
+                                        {companyForm.place_of_supply}
+                                    </p>
+                                </div>
+                            )}
                         </div>
-                        <div className="flex items-center gap-3 text-sm">
-                            <Phone className="h-4 w-4 text-muted-foreground" />
-                            <p className="text-muted-foreground">
-                                {companyDetails.contact}
-                            </p>
-                        </div>
-                        <div className="flex items-center gap-3 text-sm">
-                            <FileText className="h-4 w-4 text-muted-foreground" />
-                            <p className="text-muted-foreground">
-                                {companyDetails.vatNo}
-                            </p>
-                        </div>
-                        <div className="flex items-start gap-3 text-sm mt-5">
-                            <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-                            <p className="text-muted-foreground">
-                                {companyDetails.place_of_supply}
-                            </p>
-                        </div>
-                    </div>
+                    )}
                 </div>
 
                 {/* VAT Settings Card */}
