@@ -13,7 +13,6 @@ import {
 import { FloatingInput } from '@/components/ui/FloatingInput';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { DataGrid } from '@/components/ui/DataGrid';
-import { fuelTypeOptions } from '@/components/ui/FuelBadge';
 import { useToast } from '@/hooks/use-toast';
 import {
     Dialog,
@@ -316,6 +315,7 @@ export default function ClientDetails({
         } else {
             setVehicles([]);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedCompanyId]);
 
     const handleDeleteCompany = async () => {

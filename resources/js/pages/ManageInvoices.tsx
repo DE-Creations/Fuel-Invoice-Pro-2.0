@@ -90,6 +90,7 @@ export default function ManageInvoices() {
 
     useEffect(() => {
         fetchInvoices(1);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [showDeleted]);
 
     const fetchInvoices = async (page: number) => {
@@ -220,15 +221,15 @@ export default function ManageInvoices() {
                 console.log('Invoice data received:', data);
 
                 // Ensure data is in array format with string values
-                const companiesData = data.companies.map((c: any) => ({
+                const companiesData = data.companies.map((c: { value: string | number; label: string }) => ({
                     value: String(c.value),
                     label: c.label,
                 }));
-                const vehiclesData = data.vehicles.map((v: any) => ({
+                const vehiclesData = data.vehicles.map((v: { value: string | number; label: string }) => ({
                     value: String(v.value),
                     label: v.label,
                 }));
-                const fuelTypesData = data.fuelTypes.map((f: any) => ({
+                const fuelTypesData = data.fuelTypes.map((f: { value: string | number; label: string; price: number }) => ({
                     value: String(f.value),
                     label: f.label,
                     price: f.price,
@@ -285,7 +286,6 @@ export default function ManageInvoices() {
             };
 
             const volume = parseFloat(editFormData.volume) || 0;
-            const fuelPriceFromDB = fuelPrice;
             const FuelNetPrice = Math.round(
                 (fuelPrice / (100 + vatPercentage)) * 100,
             );
@@ -350,18 +350,21 @@ export default function ManageInvoices() {
         if (editFormData.company && editInvoiceId && !isInitialLoad) {
             fetchVehicles(editFormData.company);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [editFormData.company]);
 
     useEffect(() => {
         if (editFormData.vehicle && editInvoiceId && !isInitialLoad) {
             fetchFuelTypes(editFormData.vehicle);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [editFormData.vehicle]);
 
     useEffect(() => {
         if (editFormData.fuelType && editInvoiceId && !isInitialLoad) {
             fetchFuelPrice(editFormData.fuelType);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [editFormData.fuelType]);
 
     const fetchVehicles = async (companyId: string) => {
@@ -369,7 +372,7 @@ export default function ManageInvoices() {
             const response = await fetch(`/api/invoice/vehicles/${companyId}`);
             const data = await response.json();
             setVehicles(
-                data.vehicles.map((v: any) => ({
+                data.vehicles.map((v: { value: string | number; label: string }) => ({
                     value: String(v.value),
                     label: v.label,
                 })),
@@ -386,7 +389,7 @@ export default function ManageInvoices() {
             );
             const data = await response.json();
             setFuelTypes(
-                data.fuelTypes.map((f: any) => ({
+                data.fuelTypes.map((f: { value: string | number; label: string; price: number }) => ({
                     value: String(f.value),
                     label: f.label,
                     price: f.price,
@@ -816,7 +819,6 @@ export default function ManageInvoices() {
                                 (() => {
                                     const volume =
                                         parseFloat(editFormData.volume) || 0;
-                                    const fuelPriceFromDB = fuelPrice;
                                     const FuelNetPrice = Math.round(
                                         (fuelPrice / (100 + vatPercentage)) *
                                             100,

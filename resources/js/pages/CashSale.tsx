@@ -123,7 +123,7 @@ export default function CashSale({
                     variant: 'destructive',
                 });
             }
-        } catch (error) {
+        } catch {
             toast({
                 title: 'Error',
                 description: 'Failed to save cash sale.',
@@ -185,7 +185,7 @@ export default function CashSale({
                     variant: 'destructive',
                 });
             }
-        } catch (error) {
+        } catch {
             setRetrievedData(null);
             toast({
                 title: 'Error',
@@ -229,7 +229,7 @@ export default function CashSale({
                     variant: 'destructive',
                 });
             }
-        } catch (error) {
+        } catch {
             toast({
                 title: 'Error',
                 description: 'Failed to generate PDF.',

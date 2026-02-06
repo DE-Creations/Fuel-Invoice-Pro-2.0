@@ -64,6 +64,7 @@ export default function Index({ companies, initialVatPercentage }: IndexProps) {
             setFuelTypes([]);
             setFuelPrice(0);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [formData.company]);
 
     // Fetch fuel types when vehicle changes
@@ -75,6 +76,7 @@ export default function Index({ companies, initialVatPercentage }: IndexProps) {
             setFuelTypes([]);
             setFuelPrice(0);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [formData.vehicle]);
 
     // Fetch fuel price when fuel type changes
@@ -82,6 +84,7 @@ export default function Index({ companies, initialVatPercentage }: IndexProps) {
         if (formData.fuelType) {
             fetchFuelPrice(formData.fuelType);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [formData.fuelType]);
 
     const fetchVehicles = async (companyId: string) => {
@@ -135,7 +138,6 @@ export default function Index({ companies, initialVatPercentage }: IndexProps) {
 
     // Calculation values
     const volume = parseFloat(formData.volume) || 0;
-    const fuelPriceFromDB = fuelPrice; // This is the total price from database
     const FuelNetPrice = Math.round((fuelPrice / (100 + vatPercentage)) * 100);
     const vatAmountPerLiter = Math.round(
         (fuelPrice / (100 + vatPercentage)) * vatPercentage,
@@ -190,7 +192,7 @@ export default function Index({ companies, initialVatPercentage }: IndexProps) {
                 );
             }
 
-            const data = await response.json();
+            await response.json();
 
             toast({
                 title: 'Invoice Saved Successfully',

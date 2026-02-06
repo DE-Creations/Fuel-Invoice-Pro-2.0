@@ -146,6 +146,7 @@ class SettingsController extends Controller
             'company_address' => 'nullable|string',
             'company_contact' => 'nullable|string|max:45',
             'company_vat_no' => 'nullable|string|max:45',
+            'place_of_supply' => 'nullable|string|max:255',
         ]);
 
         $settings = Settings::first();
@@ -163,6 +164,7 @@ class SettingsController extends Controller
                 'address' => $settings->company_address,
                 'contact' => $settings->company_contact,
                 'vatNo' => $settings->company_vat_no,
+                'place_of_supply' => $settings->place_of_supply,
             ],
         ]);
     }

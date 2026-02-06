@@ -38,7 +38,7 @@ const navItems = [
 
 export function Sidebar() {
     const page = usePage();
-    const { auth } = page.props as any;
+    const { auth } = page.props as { auth?: { user?: { user_type?: string; name?: string; email?: string; expired_at?: string } } };
     const user = auth?.user;
     const isAdmin = user?.user_type === 'admin';
     const [mobileOpen, setMobileOpen] = useState(false);

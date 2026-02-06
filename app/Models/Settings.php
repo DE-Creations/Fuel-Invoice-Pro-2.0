@@ -18,6 +18,7 @@ class Settings extends Model
         'company_address',
         'company_contact',
         'company_vat_no',
+        'place_of_supply',
     ];
 
     /**
