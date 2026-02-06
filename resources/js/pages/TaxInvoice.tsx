@@ -1,15 +1,20 @@
 import { useState, useEffect } from 'react';
 import { usePage } from '@inertiajs/react';
-import { Search, Printer, FileX, CalendarIcon } from 'lucide-react';
+import { Search, Printer, FileX, Loader2 } from 'lucide-react';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { DatePickerField } from '@/components/ui/DatePickerField';
 import { DataGrid } from '@/components/ui/DataGrid';
-import { FuelBadge, FuelType } from '@/components/ui/FuelBadge';
 import { useToast } from '@/hooks/use-toast';
 
 interface SelectOption {
     value: string;
     label: string;
+}
+
+interface PageProps {
+    csrf_token: string;
+    companies: SelectOption[];
+    [key: string]: unknown;
 }
 
 interface TaxRecord {
@@ -27,8 +32,8 @@ interface TaxRecord {
 
 export default function TaxInvoice() {
     const { toast } = useToast();
-    const { props } = usePage<{ csrf_token: string }>();
-    const [companies, setCompanies] = useState<SelectOption[]>([]);
+    const { props } = usePage<PageProps>();
+    const companies = props.companies || [];
     const [vehicles, setVehicles] = useState<SelectOption[]>([]);
     const [paymentMethods, setPaymentMethods] = useState<SelectOption[]>([]);
     const [filters, setFilters] = useState({
@@ -43,6 +48,9 @@ export default function TaxInvoice() {
     const [searched, setSearched] = useState(false);
     const [taxInvoiceNumber, setTaxInvoiceNumber] = useState<string>('');
     const [grandTotal, setGrandTotal] = useState<number>(0);
+    const [isLoadingVehicles, setIsLoadingVehicles] = useState(false);
+    const [isLoadingRecords, setIsLoadingRecords] = useState(false);
+    const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
     // Pagination state
     interface PaginationData {
@@ -58,9 +66,8 @@ export default function TaxInvoice() {
         total: 0,
     });
 
-    // Fetch companies and payment methods on component mount
+    // Fetch payment methods on component mount
     useEffect(() => {
-        fetchCompanies();
         fetchPaymentMethods();
     }, []);
 
@@ -74,6 +81,7 @@ export default function TaxInvoice() {
             setFilters((prev) => ({ ...prev, vehicle: 'all' }));
             setTaxInvoiceNumber('');
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [filters.company]);
 
     // Re-fetch tax invoice number when invoice date changes
@@ -81,34 +89,17 @@ export default function TaxInvoice() {
         if (filters.company) {
             fetchNextTaxInvoiceNumber(filters.company);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [invoiceDate]);
 
-    const fetchCompanies = async () => {
-        try {
-            const response = await fetch('/');
-            const html = await response.text();
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            const dataElement = doc.getElementById('app');
-            const pageData = dataElement?.getAttribute('data-page');
-
-            if (pageData) {
-                const data = JSON.parse(pageData);
-                const companiesData = data.props?.companies || [];
-                setCompanies(companiesData);
-            }
-        } catch (error) {
-            console.error('Error fetching companies:', error);
-        }
-    };
-
     const fetchVehicles = async (companyId: string) => {
+        setIsLoadingVehicles(true);
         try {
             const response = await fetch(`/api/invoice/vehicles/${companyId}`);
             const data = await response.json();
             setVehicles([
                 { value: 'all', label: 'All Vehicles' },
-                ...data.vehicles.map((v: any) => ({
+                ...data.vehicles.map((v: { value: string | number; label: string }) => ({
                     value: String(v.value),
                     label: v.label,
                 })),
@@ -116,6 +107,13 @@ export default function TaxInvoice() {
             setFilters((prev) => ({ ...prev, vehicle: 'all' }));
         } catch (error) {
             console.error('Error fetching vehicles:', error);
+            toast({
+                title: 'Error',
+                description: 'Failed to fetch vehicles',
+                variant: 'destructive',
+            });
+        } finally {
+            setIsLoadingVehicles(false);
         }
     };
 
@@ -172,6 +170,7 @@ export default function TaxInvoice() {
             });
             return;
         }
+        setIsLoadingRecords(true);
         try {
             const response = await fetch(
                 `/api/invoice/tax-records?page=${page}`,
@@ -220,6 +219,8 @@ export default function TaxInvoice() {
                 description: 'Failed to fetch records',
                 variant: 'destructive',
             });
+        } finally {
+            setIsLoadingRecords(false);
         }
     };
 
@@ -285,6 +286,7 @@ export default function TaxInvoice() {
         }
 
         // First, check for duplicate invoice number via API
+        setIsGeneratingPDF(true);
         try {
             const response = await fetch(
                 '/api/invoice/generate-tax-invoice-pdf',
@@ -348,6 +350,8 @@ export default function TaxInvoice() {
                 description: 'Failed to generate PDF. Please try again.',
                 variant: 'destructive',
             });
+        } finally {
+            setIsGeneratingPDF(false);
         }
     };
 
@@ -463,6 +467,7 @@ export default function TaxInvoice() {
                         onChange={(value) =>
                             setFilters({ ...filters, vehicle: value })
                         }
+                        disabled={isLoadingVehicles || !filters.company}
                     />
                     <DatePickerField
                         label="From Date"
@@ -483,10 +488,15 @@ export default function TaxInvoice() {
                     <button
                         type="button"
                         onClick={handleSearch}
-                        className="btn-primary-glow flex items-center gap-2"
+                        disabled={isLoadingRecords}
+                        className="btn-primary-glow flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        <Search className="h-5 w-5" />
-                        Search
+                        {isLoadingRecords ? (
+                            <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : (
+                            <Search className="h-5 w-5" />
+                        )}
+                        {isLoadingRecords ? 'Searching...' : 'Search'}
                     </button>
                 </div>
             </div>
@@ -683,10 +693,15 @@ export default function TaxInvoice() {
                                     <button
                                         type="button"
                                         onClick={handlePrint}
-                                        className="btn-success-glow flex items-center gap-2"
+                                        disabled={isGeneratingPDF}
+                                        className="btn-success-glow flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        <Printer className="h-5 w-5" />
-                                        Print
+                                        {isGeneratingPDF ? (
+                                            <Loader2 className="h-5 w-5 animate-spin" />
+                                        ) : (
+                                            <Printer className="h-5 w-5" />
+                                        )}
+                                        {isGeneratingPDF ? 'Generating...' : 'Print'}
                                     </button>
                                 </div>
                             </div>
