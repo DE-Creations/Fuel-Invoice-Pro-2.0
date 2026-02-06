@@ -212,7 +212,7 @@ export default function InvoiceHistory({ companies }: InvoiceHistoryProps) {
                         variant: 'destructive',
                     });
                 }
-            } catch (error) {
+            } catch {
                 toast({
                     title: 'Error',
                     description: 'Failed to load invoice records.',
@@ -259,7 +259,7 @@ export default function InvoiceHistory({ companies }: InvoiceHistoryProps) {
                     variant: 'destructive',
                 });
             }
-        } catch (error) {
+        } catch {
             toast({
                 title: 'Error',
                 description: 'Failed to generate PDF.',

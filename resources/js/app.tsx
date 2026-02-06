@@ -20,11 +20,11 @@ createInertiaApp({
     resolve: async (name) => {
         const importer = pages[`./pages/${name}.tsx`];
         if (!importer) {
-            const mod: any = await pages['./pages/NotFound.tsx']();
+            const mod = await pages['./pages/NotFound.tsx']() as { default: unknown };
             return mod.default;
         }
 
-        const mod: any = await importer();
+        const mod = await importer() as { default: unknown };
         const Page = mod.default;
 
         if (!Page.layout) {
