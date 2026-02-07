@@ -120,7 +120,7 @@
             <tr>
                 <th>Date</th>
                 <th>Invoice No</th>
-                <th>Company</th>
+                <th>Payment Method</th>
                 <th>Net Value</th>
                 <th>VAT</th>
                 <th>Total</th>
@@ -131,19 +131,19 @@
             <tr>
                 <td class="text-center">{{ $invoice->invoice_date->format('Y-m-d') }}</td>
                 <td class="text-center">{{ $invoice->tax_invoice_no }}</td>
-                <td>{{ $invoice->company_name }}</td>
-                <td class="text-right">{{ number_format($invoice->subtotal, 2) }}</td>
-                <td class="text-right">{{ number_format($invoice->vat_amount, 2) }}</td>
-                <td class="text-right">{{ number_format($invoice->total_amount, 2) }}</td>
+                <td class="text-center">{{ $invoice->paymentMethod->name ?? '' }}</td>
+                <td class="text-right">{{ number_format($invoice->subtotal, 0) }}</td>
+                <td class="text-right">{{ number_format($invoice->vat_amount, 0) }}</td>
+                <td class="text-right">{{ number_format($invoice->total_amount, 0) }}</td>
             </tr>
             @endforeach
 
             <!-- Totals -->
             <tr class="totals-row">
-                <td colspan="3" class="text-right">GRAND TOTAL</td>
-                <td class="text-right">{{ number_format($totals['sum_net'], 2) }}</td>
-                <td class="text-right">{{ number_format($totals['sum_vat'], 2) }}</td>
-                <td class="text-right">{{ number_format($totals['sum_total'], 2) }}</td>
+                <td colspan="3" class="text-right" style="padding-right: 2%">GRAND TOTAL</td>
+                <td class="text-right">{{ number_format($totals['sum_net'], 0) }}</td>
+                <td class="text-right">{{ number_format($totals['sum_vat'], 0) }}</td>
+                <td class="text-right">{{ number_format($totals['sum_total'], 0) }}</td>
             </tr>
         </tbody>
     </table>

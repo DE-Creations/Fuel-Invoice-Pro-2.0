@@ -13,6 +13,7 @@ interface SelectOption {
 
 interface PageProps {
     companies: SelectOption[];
+    paymentMethods: SelectOption[];
 }
 
 interface Invoice {
@@ -20,6 +21,7 @@ interface Invoice {
     invoice_date: string;
     tax_invoice_no: string;
     company_name: string;
+    payment_method_name: string;
     subtotal: number;
     vat_amount: number;
     total_amount: number;
@@ -31,10 +33,11 @@ interface InvoiceTotals {
     sum_total: number;
 }
 
-export default function InvoiceSummary({ companies }: PageProps) {
+export default function InvoiceSummary({ companies, paymentMethods }: PageProps) {
     const { toast } = useToast();
     const [filters, setFilters] = useState({
         companyId: '',
+        paymentMethodId: '',
         fromDate: undefined as Date | undefined,
         toDate: undefined as Date | undefined,
     });
@@ -43,7 +46,20 @@ export default function InvoiceSummary({ companies }: PageProps) {
     const [isLoading, setIsLoading] = useState(false);
     const [hasSearched, setHasSearched] = useState(false);
 
-    const handleSearch = async () => {
+    // Pagination state
+    const [pagination, setPagination] = useState<{
+        current_page: number;
+        last_page: number;
+        per_page: number;
+        total: number;
+    }>({
+        current_page: 1,
+        last_page: 1,
+        per_page: 20,
+        total: 0,
+    });
+
+    const handleSearch = async (page: number = 1) => {
         if (!filters.fromDate || !filters.toDate) {
             toast({
                 title: 'Validation Error',
@@ -59,12 +75,32 @@ export default function InvoiceSummary({ companies }: PageProps) {
                 from_date: format(filters.fromDate, 'yyyy-MM-dd'),
                 to_date: format(filters.toDate, 'yyyy-MM-dd'),
                 company_id: filters.companyId || '',
+                payment_method_id: filters.paymentMethodId || '',
+                page: page.toString(),
             });
 
             const response = await fetch(`/api/invoice-summary/search?${queryParams}`);
             const data = await response.json();
 
-            setInvoices(data.invoices);
+            // Handle paginated response structure
+            if (data.invoices && typeof data.invoices === 'object' && 'data' in data.invoices) {
+                setInvoices(data.invoices.data);
+                setPagination({
+                    current_page: data.invoices.current_page,
+                    last_page: data.invoices.last_page,
+                    per_page: data.invoices.per_page,
+                    total: data.invoices.total,
+                });
+            } else {
+                 setInvoices(data.invoices || []);
+                 setPagination({
+                    current_page: 1,
+                    last_page: 1,
+                    per_page: 20,
+                    total: data.invoices ? data.invoices.length : 0,
+                 });
+            }
+
             setTotals(data.totals);
             setHasSearched(true);
         } catch (error) {
@@ -79,6 +115,37 @@ export default function InvoiceSummary({ companies }: PageProps) {
         }
     };
 
+    const handlePageChange = (page: number) => {
+        if (page >= 1 && page <= pagination.last_page) {
+            handleSearch(page);
+        }
+    };
+
+    const getPageNumbers = () => {
+        const { current_page, last_page } = pagination;
+        const pages: (number | string)[] = [];
+        if (last_page <= 7) {
+            for (let i = 1; i <= last_page; i++) {
+                pages.push(i);
+            }
+        } else {
+            pages.push(1);
+            if (current_page > 3) {
+                pages.push('...');
+            }
+            const start = Math.max(2, current_page - 1);
+            const end = Math.min(last_page - 1, current_page + 1);
+            for (let i = start; i <= end; i++) {
+                pages.push(i);
+            }
+            if (current_page < last_page - 2) {
+                pages.push('...');
+            }
+            pages.push(last_page);
+        }
+        return pages;
+    };
+
     const handlePrint = () => {
         if (!filters.fromDate || !filters.toDate) return;
 
@@ -86,15 +153,21 @@ export default function InvoiceSummary({ companies }: PageProps) {
             from_date: format(filters.fromDate, 'yyyy-MM-dd'),
             to_date: format(filters.toDate, 'yyyy-MM-dd'),
             company_id: filters.companyId || '',
+            payment_method_id: filters.paymentMethodId || '',
         });
 
         window.open(`/api/invoice-summary/print?${queryParams}`, '_blank');
     };
 
-    // Add "All Companies" option to the list
+    // Add "All Companies" and "All Methods" option to the list
     const companyOptions = [
         { value: '', label: 'All Companies' },
         ...companies
+    ];
+
+    const paymentMethodOptions = [
+        { value: '', label: 'All Methods' },
+        ...paymentMethods
     ];
 
     return (
@@ -113,12 +186,18 @@ export default function InvoiceSummary({ companies }: PageProps) {
 
             {/* Filter Panel */}
             <div className="card-neumorphic p-6 space-y-6 animate-fade-slide-up" style={{ animationDelay: '0.1s' }}>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <SearchableSelect
                         label="Company"
                         options={companyOptions}
                         value={filters.companyId}
                         onChange={(value) => setFilters({ ...filters, companyId: value })}
+                    />
+                    <SearchableSelect
+                        label="Payment Method"
+                        options={paymentMethodOptions}
+                        value={filters.paymentMethodId}
+                        onChange={(value) => setFilters({ ...filters, paymentMethodId: value })}
                     />
                     <DatePickerField
                         label="From Date"
@@ -136,15 +215,15 @@ export default function InvoiceSummary({ companies }: PageProps) {
                         <button
                             type="button"
                             onClick={handlePrint}
-                            className="bg-secondary text-secondary-foreground hover:bg-secondary/80 h-10 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                            className="btn-success-glow flex items-center gap-2"
                         >
-                            <Printer className="h-4 w-4" />
+                            <Printer className="h-5 w-5" />
                             Print Summary
                         </button>
                     )}
                     <button
                         type="button"
-                        onClick={handleSearch}
+                        onClick={() => handleSearch(1)}
                         disabled={isLoading}
                         className="btn-primary-glow flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
@@ -179,7 +258,7 @@ export default function InvoiceSummary({ companies }: PageProps) {
                                         <tr>
                                             <th className="px-6 py-3 font-semibold">Date</th>
                                             <th className="px-6 py-3 font-semibold">Invoice No</th>
-                                            <th className="px-6 py-3 font-semibold">Company</th>
+                                            <th className="px-6 py-3 font-semibold">Payment Method</th>
                                             <th className="px-6 py-3 font-semibold text-right">Net Value</th>
                                             <th className="px-6 py-3 font-semibold text-right">VAT</th>
                                             <th className="px-6 py-3 font-semibold text-right">Total</th>
@@ -194,15 +273,15 @@ export default function InvoiceSummary({ companies }: PageProps) {
                                                 <td className="px-6 py-4 font-medium text-primary">
                                                     {invoice.tax_invoice_no}
                                                 </td>
-                                                <td className="px-6 py-4">{invoice.company_name}</td>
+                                                <td className="px-6 py-4">{invoice.payment_method_name}</td>
                                                 <td className="px-6 py-4 text-right whitespace-nowrap">
-                                                    {Number(invoice.subtotal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                    {Number(invoice.subtotal).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                 </td>
                                                 <td className="px-6 py-4 text-right whitespace-nowrap">
-                                                    {Number(invoice.vat_amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                    {Number(invoice.vat_amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                 </td>
                                                 <td className="px-6 py-4 text-right font-semibold whitespace-nowrap">
-                                                    {Number(invoice.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                    {Number(invoice.total_amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                 </td>
                                             </tr>
                                         ))}
@@ -214,19 +293,74 @@ export default function InvoiceSummary({ companies }: PageProps) {
                                                     Grand Total
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
-                                                    {totals.sum_net.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                    {Number(totals.sum_net).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
-                                                    {totals.sum_vat.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                    {Number(totals.sum_vat).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
-                                                    {totals.sum_total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                    {Number(totals.sum_total).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                 </td>
                                             </tr>
                                         </tfoot>
                                     )}
                                 </table>
                             </div>
+
+                            {/* Pagination */}
+                            {pagination.total > 0 && (
+                                <div className="p-4 border-t border-border">
+                                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                                        <div className="text-sm text-muted-foreground order-2 sm:order-1">
+                                            Showing {(pagination.current_page - 1) * pagination.per_page + 1} to {Math.min(pagination.current_page * pagination.per_page, pagination.total)} of {pagination.total} records
+                                        </div>
+                                        <div className="flex items-center gap-2 order-1 sm:order-2">
+                                            <button
+                                                onClick={() => handlePageChange(pagination.current_page - 1)}
+                                                disabled={pagination.current_page === 1}
+                                                className="p-2 rounded-lg border border-border hover:bg-secondary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                            >
+                                                <span className="sr-only">Previous</span>
+                                                <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                                                </svg>
+                                            </button>
+                                            <div className="flex items-center gap-1">
+                                                {getPageNumbers().map((page, index) =>
+                                                    typeof page === 'number' ? (
+                                                        <button
+                                                            key={page}
+                                                            onClick={() => handlePageChange(page)}
+                                                            className={`min-w-[2.5rem] h-10 px-3 rounded-lg transition-colors ${
+                                                                page === pagination.current_page
+                                                                    ? 'bg-primary text-primary-foreground'
+                                                                    : 'border border-border hover:bg-secondary'
+                                                            }`}
+                                                        >
+                                                            {page}
+                                                        </button>
+                                                    ) : (
+                                                        <span key={`ellipsis-${index}`} className="px-2 text-muted-foreground">
+                                                            {page}
+                                                        </span>
+                                                    )
+                                                )}
+                                            </div>
+                                            <button
+                                                onClick={() => handlePageChange(pagination.current_page + 1)}
+                                                disabled={pagination.current_page === pagination.last_page}
+                                                className="p-2 rounded-lg border border-border hover:bg-secondary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                            >
+                                                <span className="sr-only">Next</span>
+                                                <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                         </div>
                     )}
                 </div>
