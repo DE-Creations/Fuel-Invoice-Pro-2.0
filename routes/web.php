@@ -9,6 +9,7 @@ use App\Http\Controllers\CashSaleController;
 use App\Http\Controllers\ClientDetailsController;
 use App\Http\Controllers\TaxInvoiceController;
 use App\Http\Controllers\TaxInvoiceHistoryController;
+use App\Http\Controllers\InvoiceSummaryController;
 use App\Http\Controllers\Admin\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -83,6 +84,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [DailyInvoiceController::class, 'index'])->name('dashboard');
     Route::get('/manage', [ManageInvoiceController::class, 'index'])->name('manage');
     Route::get('/tax-invoice', [TaxInvoiceController::class, 'index'])->name('tax-invoice');
+    Route::get('/invoice-summary', [InvoiceSummaryController::class, 'index'])->name('invoice-summary');
     Route::get('/history', [TaxInvoiceHistoryController::class, 'index'])->name('history');
     Route::get('/cash-sale', [CashSaleController::class, 'index'])->name('cash-sale');
     Route::get('/clients', [ClientDetailsController::class, 'index'])->name('clients');
@@ -139,6 +141,12 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/list', [TaxInvoiceHistoryController::class, 'getTaxInvoices'])->name('api.tax-invoice-history.list');
         Route::post('/records', [TaxInvoiceHistoryController::class, 'getTaxInvoiceRecords'])->name('api.tax-invoice-history.records');
         Route::post('/generate-pdf', [TaxInvoiceHistoryController::class, 'generateTaxInvoicePDF'])->name('api.tax-invoice-history.generate-pdf');
+    });
+
+    // API Routes for Invoice Summary
+    Route::prefix('api/invoice-summary')->group(function () {
+        Route::get('/search', [InvoiceSummaryController::class, 'search'])->name('api.invoice-summary.search');
+        Route::get('/print', [InvoiceSummaryController::class, 'print'])->name('api.invoice-summary.print');
     });
 
     // API Routes for Cash Sale

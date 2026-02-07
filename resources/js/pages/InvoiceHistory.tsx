@@ -85,6 +85,20 @@ export default function InvoiceHistory({ companies }: InvoiceHistoryProps) {
         toDate: string;
     } | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+
+    // Pagination state
+    const [pagination, setPagination] = useState<{
+        current_page: number;
+        last_page: number;
+        per_page: number;
+        total: number;
+    }>({
+        current_page: 1,
+        last_page: 1,
+        per_page: 20,
+        total: 0,
+    });
 
     const handleView = async () => {
         if (!filters.company) {
@@ -137,6 +151,12 @@ export default function InvoiceHistory({ companies }: InvoiceHistoryProps) {
                 setSelectedInvoice('');
                 setRecords([]);
                 setMetadata(null);
+                setPagination({
+                    current_page: 1,
+                    last_page: 1,
+                    per_page: 20,
+                    total: 0,
+                });
 
                 if (!data.invoices || data.invoices.length === 0) {
                     toast({
@@ -172,6 +192,79 @@ export default function InvoiceHistory({ companies }: InvoiceHistoryProps) {
         }
     };
 
+    const fetchInvoiceRecords = async (invoiceId: string, page: number = 1) => {
+        try {
+            const response = await fetch(
+                `/api/history/tax-invoice-records?page=${page}`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': props.csrf_token,
+                    },
+                    body: JSON.stringify({
+                        tax_invoice_id: invoiceId,
+                    }),
+                },
+            );
+
+            const data = await response.json();
+
+            if (data.success) {
+                setRecords(data.records);
+                setPagination({
+                    current_page: data.current_page,
+                    last_page: data.last_page,
+                    per_page: data.per_page,
+                    total: data.total,
+                });
+            } else {
+                toast({
+                    title: 'Error',
+                    description: 'Failed to load invoice records.',
+                    variant: 'destructive',
+                });
+            }
+        } catch {
+            toast({
+                title: 'Error',
+                description: 'Failed to load invoice records.',
+                variant: 'destructive',
+            });
+        }
+    };
+
+    const handlePageChange = (page: number) => {
+        if (selectedInvoice && page >= 1 && page <= pagination.last_page) {
+            fetchInvoiceRecords(selectedInvoice, page);
+        }
+    };
+
+    const getPageNumbers = () => {
+        const { current_page, last_page } = pagination;
+        const pages: (number | string)[] = [];
+        if (last_page <= 7) {
+            for (let i = 1; i <= last_page; i++) {
+                pages.push(i);
+            }
+        } else {
+            pages.push(1);
+            if (current_page > 3) {
+                pages.push('...');
+            }
+            const start = Math.max(2, current_page - 1);
+            const end = Math.min(last_page - 1, current_page + 1);
+            for (let i = start; i <= end; i++) {
+                pages.push(i);
+            }
+            if (current_page < last_page - 2) {
+                pages.push('...');
+            }
+            pages.push(last_page);
+        }
+        return pages;
+    };
+
     const handleInvoiceSelect = async (invoiceValue: string) => {
         setSelectedInvoice(invoiceValue);
         const invoice = availableInvoices.find(
@@ -184,41 +277,7 @@ export default function InvoiceHistory({ companies }: InvoiceHistoryProps) {
                 fromDate: invoice.fromDate,
                 toDate: invoice.toDate,
             });
-
-            // Fetch daily invoice records for this tax invoice
-            try {
-                const response = await fetch(
-                    '/api/history/tax-invoice-records',
-                    {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': props.csrf_token,
-                        },
-                        body: JSON.stringify({
-                            tax_invoice_id: invoiceValue,
-                        }),
-                    },
-                );
-
-                const data = await response.json();
-
-                if (data.success) {
-                    setRecords(data.records);
-                } else {
-                    toast({
-                        title: 'Error',
-                        description: 'Failed to load invoice records.',
-                        variant: 'destructive',
-                    });
-                }
-            } catch {
-                toast({
-                    title: 'Error',
-                    description: 'Failed to load invoice records.',
-                    variant: 'destructive',
-                });
-            }
+            fetchInvoiceRecords(invoiceValue, 1);
         }
     };
 
@@ -231,6 +290,8 @@ export default function InvoiceHistory({ companies }: InvoiceHistoryProps) {
             });
             return;
         }
+
+        setIsGeneratingPdf(true);
 
         try {
             const response = await fetch(
@@ -265,6 +326,8 @@ export default function InvoiceHistory({ companies }: InvoiceHistoryProps) {
                 description: 'Failed to generate PDF.',
                 variant: 'destructive',
             });
+        } finally {
+            setIsGeneratingPdf(false);
         }
     };
 
@@ -438,17 +501,80 @@ export default function InvoiceHistory({ companies }: InvoiceHistoryProps) {
                     className="space-y-4 animate-fade-slide-up"
                     style={{ animationDelay: '0.25s' }}
                 >
-                    <DataGrid columns={columns} data={records} pageSize={10} />
+                    <DataGrid
+                        columns={columns}
+                        data={records}
+                        disablePagination={true}
+                    />
+
+                    {/* Pagination Bar */}
+                    {pagination.total > 0 && (
+                        <div className="card-neumorphic p-4">
+                            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                                <div className="text-sm text-muted-foreground order-2 sm:order-1">
+                                    Showing {(pagination.current_page - 1) * pagination.per_page + 1} to {Math.min(pagination.current_page * pagination.per_page, pagination.total)} of {pagination.total} records
+                                </div>
+                                <div className="flex items-center gap-2 order-1 sm:order-2">
+                                    <button
+                                        onClick={() => handlePageChange(pagination.current_page - 1)}
+                                        disabled={pagination.current_page === 1}
+                                        className="p-2 rounded-lg border border-border hover:bg-secondary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                        <span className="sr-only">Previous</span>
+                                        <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                                        </svg>
+                                    </button>
+                                    <div className="flex items-center gap-1">
+                                        {getPageNumbers().map((page, index) =>
+                                            typeof page === 'number' ? (
+                                                <button
+                                                    key={page}
+                                                    onClick={() => handlePageChange(page)}
+                                                    className={`min-w-[2.5rem] h-10 px-3 rounded-lg transition-colors ${
+                                                        page === pagination.current_page
+                                                            ? 'bg-primary text-primary-foreground'
+                                                            : 'border border-border hover:bg-secondary'
+                                                    }`}
+                                                >
+                                                    {page}
+                                                </button>
+                                            ) : (
+                                                <span key={`ellipsis-${index}`} className="px-2 text-muted-foreground">
+                                                    {page}
+                                                </span>
+                                            )
+                                        )}
+                                    </div>
+                                    <button
+                                        onClick={() => handlePageChange(pagination.current_page + 1)}
+                                        disabled={pagination.current_page === pagination.last_page}
+                                        className="p-2 rounded-lg border border-border hover:bg-secondary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                        <span className="sr-only">Next</span>
+                                        <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Actions Bar */}
                     <div className="card-neumorphic p-4 flex items-center justify-end gap-3">
                         <button
                             type="button"
                             onClick={handlePrint}
-                            className="btn-success-glow flex items-center gap-2"
+                            disabled={isGeneratingPdf}
+                            className="btn-success-glow flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            <Printer className="h-5 w-5" />
-                            Print
+                            {isGeneratingPdf ? (
+                                <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            ) : (
+                                <Printer className="h-5 w-5" />
+                            )}
+                            {isGeneratingPdf ? 'Generating...' : 'Print'}
                         </button>
                     </div>
                 </div>

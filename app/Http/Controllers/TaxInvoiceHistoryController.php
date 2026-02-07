@@ -78,7 +78,7 @@ class TaxInvoiceHistoryController extends Controller
         ]);
 
         // Get daily invoice records linked to this tax invoice
-        $records = DB::table('tax_invoice_invoice_nos')
+        $query = DB::table('tax_invoice_invoice_nos')
             ->join('invoice_daily', 'tax_invoice_invoice_nos.invoice_daily_id', '=', 'invoice_daily.id')
             ->join('vehicle', 'invoice_daily.vehicle_id', '=', 'vehicle.id')
             ->join('company', 'vehicle.company_id', '=', 'company.id')
@@ -98,26 +98,41 @@ class TaxInvoiceHistoryController extends Controller
                 'invoice_daily.Total as total'
             )
             ->orderBy('invoice_daily.date_added', 'asc')
-            ->orderBy('invoice_daily.id', 'asc')
-            ->get()
-            ->map(function ($record) {
-                return [
-                    'id' => (string) $record->id,
-                    'refNo' => $record->refNo,
-                    'company' => $record->company,
-                    'vehicle' => $record->vehicle,
-                    'date' => date('Y-m-d', strtotime($record->date)),
-                    'fuelType' => $this->mapFuelType($record->fuelType),
-                    'unitPrice' => round($record->unitPrice),
-                    'vatPercent' => (float) $record->vatPercent,
-                    'volume' => (float) $record->volume,
-                    'total' => round($record->total),
-                ];
-            });
+            ->orderBy('invoice_daily.id', 'asc');
+
+        // Get grand total directly from tax_invoice table
+        $grandTotal = DB::table('tax_invoice')
+            ->where('id', $request->tax_invoice_id)
+            ->value('total_amount') ?? 0;
+
+        $invoices = $query->paginate(20);
+
+        $records = $invoices->getCollection()->map(function ($record) {
+            return [
+                'id' => (string) $record->id,
+                'refNo' => $record->refNo,
+                'company' => $record->company,
+                'vehicle' => $record->vehicle,
+                'date' => date('Y-m-d', strtotime($record->date)),
+                'fuelType' => $this->mapFuelType($record->fuelType),
+                'unitPrice' => round($record->unitPrice),
+                'vatPercent' => (float) $record->vatPercent,
+                'volume' => (float) $record->volume,
+                'total' => round($record->total),
+            ];
+        });
+
+        // Set the transformed collection back
+        $invoices->setCollection($records);
 
         return response()->json([
             'success' => true,
             'records' => $records,
+            'current_page' => $invoices->currentPage(),
+            'last_page' => $invoices->lastPage(),
+            'per_page' => $invoices->perPage(),
+            'total' => $invoices->total(),
+            'grand_total' => $grandTotal,
         ]);
     }
 
@@ -176,24 +191,13 @@ class TaxInvoiceHistoryController extends Controller
                 ->select('address', 'vat_no', 'contact_number')
                 ->first();
 
-            // Calculate totals
-            $subtotal = 0;
-            $vatAmount = 0;
+            // Process records for PDF table
             $recordsArray = [];
-            $vatPercentage = 0; // Will be set from first record
 
-            foreach ($records as $index => $record) {
+            foreach ($records as $record) {
+                // Calculate item subtotal for display
                 $vatRate = $record->vatPercent / 100;
                 $itemSubtotal = $record->total / (1 + $vatRate);
-                $itemVat = $record->total - $itemSubtotal;
-
-                $subtotal += $itemSubtotal;
-                $vatAmount += $itemVat;
-
-                // Set VAT percentage from first record
-                if ($index === 0) {
-                    $vatPercentage = $record->vatPercent;
-                }
 
                 $recordsArray[] = [
                     'refNo' => $record->refNo,
@@ -208,7 +212,11 @@ class TaxInvoiceHistoryController extends Controller
                 ];
             }
 
-            $grandTotal = $subtotal + $vatAmount;
+            // Get totals directly from tax_invoice table
+            $subtotal = $taxInvoice->subtotal;
+            $vatPercentage = $taxInvoice->vat_percentage;
+            $vatAmount = $taxInvoice->vat_amount;
+            $grandTotal = $taxInvoice->total_amount;
             $totalInWords = $this->convertNumberToWords($grandTotal) . ' Rupees Only';
 
             // Prepare PDF data
