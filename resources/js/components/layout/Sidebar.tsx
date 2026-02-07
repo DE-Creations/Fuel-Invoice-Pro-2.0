@@ -15,6 +15,7 @@ import {
     User,
     Calendar,
     Clock,
+    Printer,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useMemo } from 'react';
@@ -30,6 +31,7 @@ const navItems = [
     { path: '/', label: 'Invoice Form', icon: FileText },
     { path: '/manage', label: 'Manage Invoices', icon: ClipboardList },
     { path: '/tax-invoice', label: 'Tax Invoice', icon: Receipt },
+    { path: '/invoice-summary', label: 'Invoice Summary', icon: Printer },
     { path: '/history', label: 'Invoice History', icon: History },
     { path: '/cash-sale', label: 'Cash Sale', icon: Banknote },
     { path: '/clients', label: 'Client Details', icon: Users },

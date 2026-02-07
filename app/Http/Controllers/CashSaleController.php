@@ -167,11 +167,10 @@ class CashSaleController extends Controller
         ];
 
         $data = [
-            'companyName' => $settings->company_name ?? 'KATUWANA ENTERPRISES (PVT) LTD',
-            'companySubtitle' => 'RM PARKS PETROLEUM PRODUCTS DEALER.',
-            'companyAddress' => $settings->company_address ?? 'No. 345, Katuwana Homagama',
-            'companyPhone' => $settings->company_contact ?? '0112895805',
-            'vatRegNo' => $settings->company_vat_no ?? '174070610-7000',
+            'companyName' => $settings->company_name,
+            'companyAddress' => $settings->company_address,
+            'companyPhone' => $settings->company_contact,
+            'vatRegNo' => $settings->company_vat_no,
             'printedDate' => now()->format('Y-m-d'),
             'year' => $request->year,
             'monthName' => $monthNames[$request->month],

@@ -22,6 +22,10 @@ class TaxInvoice extends Model
         'payment_method_id',
         'from_date',
         'to_date',
+        'subtotal',
+        'vat_percentage',
+        'vat_amount',
+        'total_amount',
         'created_at',
     ];
 

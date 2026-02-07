@@ -146,7 +146,6 @@
 <body>
     <div class="header">
         <div class="company-name">{{ strtoupper($companyName) }}</div>
-        <div class="company-subtitle">{{ strtoupper($companySubtitle) }}</div>
     </div>
 
     <div class="info-section">
