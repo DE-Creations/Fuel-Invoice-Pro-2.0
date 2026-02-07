@@ -282,6 +282,10 @@ class TaxInvoiceController extends Controller
             'payment_method_id' => $paymentMethodId,
             'from_date' => $request->from_date,
             'to_date' => $request->to_date,
+            'subtotal' => $subtotal,
+            'vat_percentage' => $vatPercentage,
+            'vat_amount' => $vatAmount,
+            'total_amount' => $grandTotal,
             'created_at' => now(),
         ]);
 

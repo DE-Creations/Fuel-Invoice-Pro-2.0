@@ -20,6 +20,10 @@ return new class extends Migration
             $table->unsignedBigInteger('payment_method_id')->default(1);
             $table->date('from_date')->nullable();
             $table->date('to_date')->nullable();
+            $table->decimal('subtotal', 15)->default(0);
+            $table->decimal('vat_percentage', 5)->default(0);
+            $table->decimal('vat_amount', 15)->default(0);
+            $table->decimal('total_amount', 15)->default(0);
             $table->timestamp('created_at')->nullable();
             $table->timestamp('updated_at')->nullable();
 
