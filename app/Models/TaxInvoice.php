@@ -48,4 +48,9 @@ class TaxInvoice extends Model
             'invoice_daily_id'
         );
     }
+
+    public function paymentMethod()
+    {
+        return $this->belongsTo(PaymentMethod::class, 'payment_method_id');
+    }
 }
