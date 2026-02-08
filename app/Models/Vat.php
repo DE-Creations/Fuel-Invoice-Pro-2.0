@@ -34,7 +34,9 @@ class Vat extends Model
         $today = Carbon::today();
 
         $vat = self::where('from_date', '<=', $today)
-            ->where('to_date', '>=', $today)
+            ->where(function($query) use ($today) {
+                $query->where('to_date', '>', $today);
+            })
             ->orderBy('from_date', 'desc')
             ->first();
 
