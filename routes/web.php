@@ -161,6 +161,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/vehicles', [ClientDetailsController::class, 'getVehicles'])->name('api.clients.vehicles');
         Route::post('/store-company', [ClientDetailsController::class, 'storeCompany'])->name('api.clients.store-company');
         Route::post('/store-vehicle', [ClientDetailsController::class, 'storeVehicle'])->name('api.clients.store-vehicle');
+        Route::put('/update-company/{id}', [ClientDetailsController::class, 'updateCompany'])->name('api.clients.update-company');
+        Route::put('/update-vehicle/{id}', [ClientDetailsController::class, 'updateVehicle'])->name('api.clients.update-vehicle');
         Route::delete('/delete-company/{id}', [ClientDetailsController::class, 'deleteCompany'])->name('api.clients.delete-company');
         Route::delete('/delete-vehicle/{id}', [ClientDetailsController::class, 'deleteVehicle'])->name('api.clients.delete-vehicle');
     });

@@ -16,7 +16,10 @@ class ClientDetailsController extends Controller
     public function index()
     {
         // Fetch all active companies using cached method
-        $companies = Company::whereNull('deleted_at')
+        $companies = Company::where(function($query) {
+                $query->whereNull('deleted_at')
+                      ->orWhere('deleted_at', '0000-00-00 00:00:00');
+            })
             ->select(
                 'id',
                 'name as companyName',
@@ -207,6 +210,173 @@ class ClientDetailsController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create vehicle: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Update a company
+     */
+    public function updateCompany(Request $request, $id)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'nick_name' => 'required|string|max:255',
+            'address' => 'required|string|max:500',
+            'contact_number' => 'required|string|max:20',
+            'vat_no' => 'required|string|max:50',
+        ]);
+
+        try {
+            // Check if company exists
+            $company = DB::table('company')->where('id', $id)->first();
+            if (!$company) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Company not found.',
+                ], 404);
+            }
+
+            // Check for duplicate company name (excluding current company)
+            $existingCompanyByName = DB::table('company')
+                ->where('name', $request->name)
+                ->where('id', '!=', $id)
+                ->first();
+
+            if ($existingCompanyByName) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'A company with this name already exists.',
+                ], 422);
+            }
+
+            // Check for duplicate nick name (excluding current company)
+            $existingCompanyByNickName = DB::table('company')
+                ->where('nick_name', $request->nick_name)
+                ->where('id', '!=', $id)
+                ->first();
+
+            if ($existingCompanyByNickName) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'A company with this nick name already exists.',
+                ], 422);
+            }
+
+            // Check for duplicate VAT number (excluding current company)
+            $existingCompanyByVatNo = DB::table('company')
+                ->where('vat_no', $request->vat_no)
+                ->where('id', '!=', $id)
+                ->first();
+
+            if ($existingCompanyByVatNo) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'A company with this VAT number already exists.',
+                ], 422);
+            }
+
+            DB::table('company')->where('id', $id)->update([
+                'name' => $request->name,
+                'nick_name' => $request->nick_name,
+                'address' => $request->address,
+                'contact_number' => $request->contact_number,
+                'vat_no' => $request->vat_no,
+            ]);
+
+            $company = DB::table('company')
+                ->where('id', $id)
+                ->first();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Company updated successfully.',
+                'company' => [
+                    'id' => $company->id,
+                    'companyName' => $company->name,
+                    'nickName' => $company->nick_name,
+                    'address' => $company->address,
+                    'contact' => $company->contact_number,
+                    'vatNo' => $company->vat_no,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update company: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Update a vehicle
+     */
+    public function updateVehicle(Request $request, $id)
+    {
+        $request->validate([
+            'company_id' => 'required|integer|exists:company,id',
+            'vehicle_no' => 'required|string|max:15',
+            'type' => 'required|string|max:50',
+            'fuel_category_id' => 'required|integer|exists:fuel_category,id',
+        ]);
+
+        try {
+            // Check if vehicle exists
+            $vehicle = DB::table('vehicle')->where('id', $id)->first();
+            if (!$vehicle) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Vehicle not found.',
+                ], 404);
+            }
+
+            // Check for duplicate vehicle number (excluding current vehicle)
+            $existingVehicle = DB::table('vehicle')
+                ->where('vehicle_no', $request->vehicle_no)
+                ->where('id', '!=', $id)
+                ->first();
+
+            if ($existingVehicle) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'A vehicle with this number already exists.',
+                ], 422);
+            }
+
+            DB::table('vehicle')->where('id', $id)->update([
+                'company_id' => $request->company_id,
+                'vehicle_no' => $request->vehicle_no,
+                'type' => $request->type,
+                'fuel_category_id' => $request->fuel_category_id,
+            ]);
+
+            $vehicle = DB::table('vehicle')
+                ->join('fuel_category', 'vehicle.fuel_category_id', '=', 'fuel_category.id')
+                ->where('vehicle.id', $id)
+                ->select(
+                    'vehicle.id',
+                    'vehicle.company_id',
+                    'vehicle.vehicle_no',
+                    'vehicle.type',
+                    'fuel_category.name as fuel_category_name'
+                )
+                ->first();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Vehicle updated successfully.',
+                'vehicle' => [
+                    'id' => $vehicle->id,
+                    'companyId' => $vehicle->company_id,
+                    'vehicleNo' => $vehicle->vehicle_no,
+                    'type' => $vehicle->type,
+                    'fuelCategory' => $vehicle->fuel_category_name,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update vehicle: ' . $e->getMessage(),
             ], 500);
         }
     }
