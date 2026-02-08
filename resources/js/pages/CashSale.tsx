@@ -158,9 +158,10 @@ export default function CashSale({
                     data.data.vatPercentage || vatPercentage;
                 // Calculate VAT and Cash Sale
                 // VAT = Total Income * (VAT% / (100 + VAT%))
-                const vatAmount =
+                const vatAmount = Math.round(
                     totalIncome *
-                    (currentVatPercentage / (100 + currentVatPercentage));
+                        (currentVatPercentage / (100 + currentVatPercentage)),
+                );
                 const cashSale = totalIncome - vatAmount;
 
                 setRetrievedData({
