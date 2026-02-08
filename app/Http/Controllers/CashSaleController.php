@@ -59,19 +59,18 @@ class CashSaleController extends Controller
                 ->first();
 
             if ($existing) {
-                // Update existing record
-                DB::table('monthly_income')
-                    ->where('year', $request->year)
-                    ->where('month', $request->month)
-                    ->update(['income' => $request->income]);
-            } else {
-                // Insert new record
-                DB::table('monthly_income')->insert([
-                    'year' => $request->year,
-                    'month' => $request->month,
-                    'income' => $request->income,
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cash sale for this month already exists.',
                 ]);
             }
+
+            // Insert new record
+            DB::table('monthly_income')->insert([
+                'year' => $request->year,
+                'month' => $request->month,
+                'income' => $request->income,
+            ]);
 
             return response()->json([
                 'success' => true,
