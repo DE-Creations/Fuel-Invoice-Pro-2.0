@@ -137,9 +137,9 @@ class TaxInvoiceController extends Controller
         // Prefix pattern: YYMM_NICKNAME (e.g., 26JAN_PBMS)
         $prefix = $yearMonth . '_' . $nickname;
 
-        // Get the latest tax invoice for this company by filtering company_name
+        // Get the latest tax invoice for this company by filtering company_name and ordering by id
         $latestInvoice = TaxInvoice::where('company_name', $company->name)
-            ->orderByRaw("CAST(RIGHT(tax_invoice_no, 5) AS UNSIGNED) DESC")
+            ->orderBy('id', 'DESC')
             ->first();
 
         if ($latestInvoice) {

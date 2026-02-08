@@ -9,6 +9,7 @@ import {
     Building2,
     FileX,
     Trash2,
+    Pencil,
 } from 'lucide-react';
 import { FloatingInput } from '@/components/ui/FloatingInput';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
@@ -104,10 +105,14 @@ export default function ClientDetails({
     // Modal states
     const [showAddCompanyModal, setShowAddCompanyModal] = useState(false);
     const [showAddVehicleModal, setShowAddVehicleModal] = useState(false);
+    const [showEditCompanyModal, setShowEditCompanyModal] = useState(false);
+    const [showEditVehicleModal, setShowEditVehicleModal] = useState(false);
 
     // Form states
     const [companyForm, setCompanyForm] = useState(emptyCompanyForm);
     const [vehicleForm, setVehicleForm] = useState(emptyVehicleForm);
+    const [editingCompanyId, setEditingCompanyId] = useState<string | null>(null);
+    const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null);
 
     // Delete states
     const [deleteCompanyId, setDeleteCompanyId] = useState<string | null>(null);
@@ -191,6 +196,94 @@ export default function ClientDetails({
         }
     };
 
+    const handleEditCompany = (companyId: string) => {
+        const company = companies.find((c) => c.id === companyId);
+        if (company) {
+            setEditingCompanyId(companyId);
+            setCompanyForm({
+                companyName: company.companyName,
+                nickName: company.nickName,
+                address: company.address,
+                contact: company.contact,
+                vatNo: company.vatNo,
+            });
+            setShowEditCompanyModal(true);
+        }
+    };
+
+    const handleUpdateCompany = async () => {
+        if (!companyForm.companyName.trim() || !editingCompanyId) {
+            toast({
+                variant: 'destructive',
+                title: 'Validation Error',
+                description: 'Company name is required.',
+            });
+            return;
+        }
+
+        try {
+            setIsLoading(true);
+            const response = await fetch(
+                `/api/clients/update-company/${editingCompanyId}`,
+                {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': props.csrf_token,
+                    },
+                    body: JSON.stringify({
+                        name: companyForm.companyName,
+                        nick_name: companyForm.nickName,
+                        address: companyForm.address,
+                        contact_number: companyForm.contact,
+                        vat_no: companyForm.vatNo,
+                    }),
+                }
+            );
+
+            const data = await response.json();
+
+            if (data.success) {
+                const updatedCompany: Company = {
+                    id: String(data.company.id),
+                    companyName: data.company.companyName,
+                    nickName: data.company.nickName,
+                    address: data.company.address,
+                    contact: data.company.contact,
+                    vatNo: data.company.vatNo,
+                };
+
+                setCompanies(
+                    companies.map((c) =>
+                        c.id === editingCompanyId ? updatedCompany : c
+                    )
+                );
+                toast({
+                    title: 'Company Updated',
+                    description: `${companyForm.companyName} has been updated successfully.`,
+                });
+                setCompanyForm(emptyCompanyForm);
+                setEditingCompanyId(null);
+                setShowEditCompanyModal(false);
+            } else {
+                toast({
+                    variant: 'destructive',
+                    title: 'Error',
+                    description: data.message || 'Failed to update company.',
+                });
+            }
+        } catch (error) {
+            console.error('Error updating company:', error);
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'Failed to update company. Please try again.',
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     const handleSaveVehicle = async () => {
         if (!selectedCompanyId) {
             toast({
@@ -262,6 +355,101 @@ export default function ClientDetails({
                 variant: 'destructive',
                 title: 'Error',
                 description: 'Failed to save vehicle. Please try again.',
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleEditVehicle = (vehicleId: string) => {
+        const vehicle = vehicles.find((v) => v.id === vehicleId);
+        if (vehicle) {
+            setEditingVehicleId(vehicleId);
+            setVehicleForm({
+                vehicleNo: vehicle.vehicleNo,
+                type: vehicle.type,
+                fuelCategory: String(
+                    fuelCategories.find((fc) => fc.name === vehicle.fuelCategory)?.id || ''
+                ),
+            });
+            // Store the original company ID for editing
+            setSelectedCompanyId(vehicle.companyId);
+            setShowEditVehicleModal(true);
+        }
+    };
+
+    const handleUpdateVehicle = async () => {
+        if (
+            !vehicleForm.vehicleNo.trim() ||
+            !vehicleForm.type ||
+            !vehicleForm.fuelCategory ||
+            !editingVehicleId ||
+            !selectedCompanyId
+        ) {
+            toast({
+                variant: 'destructive',
+                title: 'Validation Error',
+                description: 'All fields are required.',
+            });
+            return;
+        }
+
+        try {
+            setIsLoading(true);
+
+            const response = await fetch(
+                `/api/clients/update-vehicle/${editingVehicleId}`,
+                {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': props.csrf_token,
+                    },
+                    body: JSON.stringify({
+                        company_id: selectedCompanyId,
+                        vehicle_no: vehicleForm.vehicleNo,
+                        type: vehicleForm.type,
+                        fuel_category_id: vehicleForm.fuelCategory,
+                    }),
+                }
+            );
+
+            const data = await response.json();
+
+            if (data.success) {
+                const updatedVehicle: Vehicle = {
+                    id: String(data.vehicle.id),
+                    companyId: String(data.vehicle.companyId),
+                    vehicleNo: data.vehicle.vehicleNo,
+                    type: data.vehicle.type,
+                    fuelCategory: data.vehicle.fuelCategory,
+                };
+
+                setVehicles(
+                    vehicles.map((v) =>
+                        v.id === editingVehicleId ? updatedVehicle : v
+                    )
+                );
+                toast({
+                    title: 'Vehicle Updated',
+                    description: `${vehicleForm.vehicleNo} has been updated successfully.`,
+                });
+                setVehicleForm(emptyVehicleForm);
+                setEditingVehicleId(null);
+                setShowEditVehicleModal(false);
+            } else {
+                toast({
+                    variant: 'destructive',
+                    title: 'Error',
+                    description: data.message || 'Failed to update vehicle.',
+                });
+            }
+        } catch (error) {
+            console.error('Error updating vehicle:', error);
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'Failed to update vehicle. Please try again.',
             });
         } finally {
             setIsLoading(false);
@@ -432,17 +620,30 @@ export default function ClientDetails({
             header: 'Actions',
             align: 'center' as const,
             render: (row: Vehicle) => (
-                <button
-                    type="button"
-                    className="p-2 rounded-lg text-destructive hover:bg-destructive/10 transition-colors"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleteVehicleId(row.id);
-                    }}
-                    title="Delete Vehicle"
-                >
-                    <Trash2 className="h-4 w-4" />
-                </button>
+                <div className="flex items-center justify-center gap-2">
+                    <button
+                        type="button"
+                        className="p-2 rounded-lg text-primary hover:bg-primary/10 transition-colors"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditVehicle(row.id);
+                        }}
+                        title="Edit Vehicle"
+                    >
+                        <Pencil className="h-4 w-4" />
+                    </button>
+                    <button
+                        type="button"
+                        className="p-2 rounded-lg text-destructive hover:bg-destructive/10 transition-colors"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteVehicleId(row.id);
+                        }}
+                        title="Delete Vehicle"
+                    >
+                        <Trash2 className="h-4 w-4" />
+                    </button>
+                </div>
             ),
         },
     ];
@@ -540,7 +741,7 @@ export default function ClientDetails({
                             ) : null;
                         })()}
 
-                    <div className="flex gap-3 justify-between">
+                    <div className="flex gap-3">
                         <button
                             type="button"
                             onClick={handleClearCompany}
@@ -548,7 +749,17 @@ export default function ClientDetails({
                             disabled={!selectedCompanyId}
                         >
                             <RotateCcw className="h-4 w-4" />
-                            Clear Selection
+                            Clear
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => handleEditCompany(selectedCompanyId)}
+                            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-primary text-primary hover:bg-primary/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={!selectedCompanyId}
+                        >
+                            <Pencil className="h-4 w-4" />
+                            Edit
                         </button>
 
                         <button
@@ -560,7 +771,7 @@ export default function ClientDetails({
                             disabled={!selectedCompanyId}
                         >
                             <Trash2 className="h-4 w-4" />
-                            Delete Company
+                            Delete
                         </button>
                     </div>
                 </div>
@@ -842,6 +1053,186 @@ export default function ClientDetails({
                                     <Plus className="h-4 w-4" />
                                 )}
                                 Add Vehicle
+                            </button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Edit Company Modal */}
+            <Dialog
+                open={showEditCompanyModal}
+                onOpenChange={setShowEditCompanyModal}
+            >
+                <DialogContent className="card-neumorphic-elevated border-none max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Pencil className="h-5 w-5 text-primary" />
+                            Edit Company
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 pt-4">
+                        <FloatingInput
+                            label="Company Name"
+                            value={companyForm.companyName}
+                            onChange={(e) =>
+                                setCompanyForm({
+                                    ...companyForm,
+                                    companyName: e.target.value,
+                                })
+                            }
+                        />
+                        <FloatingInput
+                            label="Nick Name"
+                            value={companyForm.nickName}
+                            onChange={(e) =>
+                                setCompanyForm({
+                                    ...companyForm,
+                                    nickName: e.target.value,
+                                })
+                            }
+                        />
+                        <FloatingInput
+                            label="Address"
+                            value={companyForm.address}
+                            onChange={(e) =>
+                                setCompanyForm({
+                                    ...companyForm,
+                                    address: e.target.value,
+                                })
+                            }
+                        />
+                        <FloatingInput
+                            label="Contact Number"
+                            type="tel"
+                            value={companyForm.contact}
+                            onChange={(e) =>
+                                setCompanyForm({
+                                    ...companyForm,
+                                    contact: e.target.value,
+                                })
+                            }
+                        />
+                        <FloatingInput
+                            label="VAT No"
+                            value={companyForm.vatNo}
+                            onChange={(e) =>
+                                setCompanyForm({
+                                    ...companyForm,
+                                    vatNo: e.target.value,
+                                })
+                            }
+                        />
+                        <div className="flex gap-3 justify-end pt-2">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowEditCompanyModal(false);
+                                    setCompanyForm(emptyCompanyForm);
+                                    setEditingCompanyId(null);
+                                }}
+                                className="px-4 py-2 rounded-xl border border-border text-foreground hover:bg-secondary transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleUpdateCompany}
+                                disabled={isLoading || !companyForm.companyName}
+                                className="btn-primary-glow flex items-center gap-2"
+                            >
+                                {isLoading ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    <Pencil className="h-4 w-4" />
+                                )}
+                                Update Company
+                            </button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Edit Vehicle Modal */}
+            <Dialog
+                open={showEditVehicleModal}
+                onOpenChange={setShowEditVehicleModal}
+            >
+                <DialogContent className="card-neumorphic-elevated border-none max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Pencil className="h-5 w-5 text-accent" />
+                            Edit Vehicle
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 pt-4">
+                        <SearchableSelect
+                            label="Company"
+                            options={companyOptions}
+                            value={selectedCompanyId}
+                            onChange={(value) => setSelectedCompanyId(value)}
+                            placeholder="Select company"
+                        />
+                        <FloatingInput
+                            label="Vehicle No"
+                            value={vehicleForm.vehicleNo}
+                            onChange={(e) =>
+                                setVehicleForm({
+                                    ...vehicleForm,
+                                    vehicleNo: e.target.value,
+                                })
+                            }
+                        />
+                        <SearchableSelect
+                            label="Type"
+                            options={vehicleTypes}
+                            value={vehicleForm.type}
+                            onChange={(value) =>
+                                setVehicleForm({ ...vehicleForm, type: value })
+                            }
+                            placeholder="Select vehicle type"
+                        />
+                        <SearchableSelect
+                            label="Fuel Category"
+                            options={fuelCategoryOptions}
+                            value={vehicleForm.fuelCategory}
+                            onChange={(value) =>
+                                setVehicleForm({
+                                    ...vehicleForm,
+                                    fuelCategory: value,
+                                })
+                            }
+                            placeholder="Select fuel category"
+                        />
+                        <div className="flex gap-3 justify-end pt-2">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowEditVehicleModal(false);
+                                    setVehicleForm(emptyVehicleForm);
+                                    setEditingVehicleId(null);
+                                }}
+                                className="px-4 py-2 rounded-xl border border-border text-foreground hover:bg-secondary transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleUpdateVehicle}
+                                disabled={
+                                    isLoading ||
+                                    !vehicleForm.vehicleNo ||
+                                    !vehicleForm.type ||
+                                    !vehicleForm.fuelCategory
+                                }
+                                className="btn-primary-glow flex items-center gap-2"
+                            >
+                                {isLoading ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    <Pencil className="h-4 w-4" />
+                                )}
+                                Update Vehicle
                             </button>
                         </div>
                     </div>
