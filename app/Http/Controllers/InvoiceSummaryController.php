@@ -14,7 +14,7 @@ class InvoiceSummaryController extends Controller
 {
     public function index()
     {
-        $companies = Company::orderBy('name')
+        $companies = Company::orderBy('id')
             ->select('id as value', 'name as label')
             ->get();
 
